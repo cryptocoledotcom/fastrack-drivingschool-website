@@ -59,6 +59,8 @@
 
 .login-link {
     color: var(--secondary-color);
+    font-weight: bold;
+    text-shadow: -1px -1px 0 var(--white), 1px -1px 0 var(--white), -1px 1px 0 var(--white), 1px 1px 0 var(--white);
 }
 
 @media (max-width: 768px) {
