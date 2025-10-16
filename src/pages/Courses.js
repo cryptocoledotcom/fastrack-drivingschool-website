@@ -4,9 +4,9 @@ import './Courses.css';
 
 // data for courses
 const courses = [
-  { id: 1, title: 'Behind the Wheel Driving Course', description: '8hr. hands on course. For students age 18-21, as well as drivers with a Non-Renewable, Non-Transferable (Limited) Term License.', price: 499 },
-  { id: 2, title: '24hr. Online Driving Course', description: '24 hours of Online classroom course for new students in need of a permit.', price: 99 },
-  { id: 3, title: 'Online & Behind the Wheel Driving Course', description: 'Both of our courses, 24hr. Online Driving Course and 8hr. Behind the Wheel Driving Course,bundled together at a discounted price.', price: 595 },
+  { id: 1, title: 'Behind the Wheel Driving Course', description: 'Typically For students age 16-21, as well as drivers with a Non-Renewable(Limited) Term License. 8hr. hands on course.', price: 499 },
+  { id: 2, title: 'Online Driving Course', description: 'Online classroom course for new students in need of a permit. Consisting of 24 hours of classroom lessons Approved by the Ohio BMV', price: 99 },
+  { id: 3, title: 'Online & Behind the Wheel Driving Course', description: 'Both of our courses, the Online Driving Course and the Behind the Wheel Driving Course,bundled together at a discounted price.', price: 595 },
 ];
 
 function Courses() {
