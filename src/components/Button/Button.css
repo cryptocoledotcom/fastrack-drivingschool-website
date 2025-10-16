@@ -7,6 +7,7 @@
   border: none;
   cursor: pointer;
   color: var(--white);
+  text-shadow: -1px -1px 0 var(--dark-gray), 1px -1px 0 var(--dark-gray), -1px 1px 0 var(--dark-gray), 1px 1px 0 var(--dark-gray);
 }
 
 .btn-primary {

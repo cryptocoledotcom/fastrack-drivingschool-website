@@ -54,13 +54,13 @@ function Contact() {
 
       <form className="contact-form" onSubmit={handleSubmit}>
         <label htmlFor="name">Name</label>
-        <input type="text" id="name" placeholder="Your Name" value={formData.name} onChange={handleChange} required />
+        <input type="text" id="name" placeholder="Your Name" value={formData.name} onChange={handleChange} required autocomplete="name" />
         
         <label htmlFor="email">Email</label>
-        <input type="email" id="email" placeholder="Your Email" value={formData.email} onChange={handleChange} required />
+        <input type="email" id="email" placeholder="Your Email" value={formData.email} onChange={handleChange} required autocomplete="email" />
         
         <label htmlFor="message">Message</label>
-        <textarea id="message" placeholder="Your Message" rows="5" value={formData.message} onChange={handleChange} required></textarea>
+        <textarea id="message" placeholder="Your Message" rows="5" value={formData.message} onChange={handleChange} required autocomplete="off"></textarea>
         
         <button type="submit" className="btn btn-primary">Send Message</button>
       </form>

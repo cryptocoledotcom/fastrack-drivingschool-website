@@ -140,17 +140,22 @@ const UserProfile = () => {
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <label htmlFor="bio" style={{ display: "block", marginBottom: "0.25rem" }}>Bio:</label>
-              <textarea id="bio" name="bio" value={form.bio} onChange={handleChange} />
+              <textarea id="bio" name="bio" value={form.bio} onChange={handleChange} autoComplete="off" />
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <label style={{ display: "block", marginBottom: "0.25rem" }}>Address:</label>
-              <input type="text" name="houseNumber" placeholder="House Number" value={form.houseNumber} onChange={handleChange} required style={{ width: "30%", marginRight: "1%" }} autoComplete="address-line1" />
-              <input type="text" name="street" placeholder="Street" value={form.street} onChange={handleChange} required style={{ width: "68%" }} autoComplete="address-line2" />
+              <label htmlFor="houseNumber" className="sr-only">House Number</label>
+              <input type="text" id="houseNumber" name="houseNumber" placeholder="House Number" value={form.houseNumber} onChange={handleChange} required style={{ width: "30%", marginRight: "1%" }} autoComplete="address-line1" />
+              <label htmlFor="street" className="sr-only">Street</label>
+              <input type="text" id="street" name="street" placeholder="Street" value={form.street} onChange={handleChange} required style={{ width: "68%" }} autoComplete="address-line2" />
             </div>
             <div style={{ marginBottom: "1rem" }}>
-              <input type="text" name="town" placeholder="Town" value={form.town} onChange={handleChange} required style={{ width: "48%", marginRight: "4%" }} autoComplete="address-level2" />
-              <input type="text" name="state" placeholder="State" value={form.state} onChange={handleChange} required style={{ width: "20%", marginRight: "4%" }} autoComplete="address-level1" />
-              <input type="text" name="zip" placeholder="Zip" value={form.zip} onChange={handleChange} required style={{ width: "20%" }} autoComplete="postal-code" />
+              <label htmlFor="town" className="sr-only">Town</label>
+              <input type="text" id="town" name="town" placeholder="Town" value={form.town} onChange={handleChange} required style={{ width: "48%", marginRight: "4%" }} autoComplete="address-level2" />
+              <label htmlFor="state" className="sr-only">State</label>
+              <input type="text" id="state" name="state" placeholder="State" value={form.state} onChange={handleChange} required style={{ width: "20%", marginRight: "4%" }} autoComplete="address-level1" />
+              <label htmlFor="zip" className="sr-only">Zip</label>
+              <input type="text" id="zip" name="zip" placeholder="Zip" value={form.zip} onChange={handleChange} required style={{ width: "20%" }} autoComplete="postal-code" />
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <label htmlFor="phone" style={{ display: "block", marginBottom: "0.25rem" }}>Phone:</label>

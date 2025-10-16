@@ -65,32 +65,40 @@ const RegisterForm = () => {
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
       <h2>Register</h2>
+      <label htmlFor="register-name" className="sr-only">Full Name</label>
       <input
         type="text"
+        id="register-name"
         placeholder="Full Name"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
         autoComplete="name"
       />
+      <label htmlFor="register-birthday" className="sr-only">Birthday</label>
       <input
         type="date"
+        id="register-birthday"
         placeholder="Birthday"
         value={birthday}
         onChange={(e) => setBirthday(e.target.value)}
         required
         autoComplete="bday"
       />
+      <label htmlFor="register-email" className="sr-only">Email</label>
       <input
         type="email"
+        id="register-email"
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
         autoComplete="email"
       />
+      <label htmlFor="register-password" className="sr-only">Password</label>
       <input
         type="password"
+        id="register-password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -98,8 +106,10 @@ const RegisterForm = () => {
         autoComplete="new-password"
       />
       <div style={{ marginBottom: "1rem" }}>
+        <label htmlFor="register-house-number" className="sr-only">House Number</label>
         <input
           type="text"
+          id="register-house-number"
           placeholder="House Number"
           value={houseNumber}
           onChange={(e) => setHouseNumber(e.target.value)}
@@ -107,8 +117,10 @@ const RegisterForm = () => {
           style={{ width: "30%", marginRight: "1%" }}
           autoComplete="address-line1"
         />
+        <label htmlFor="register-street" className="sr-only">Street</label>
         <input
           type="text"
+          id="register-street"
           placeholder="Street"
           value={street}
           onChange={(e) => setStreet(e.target.value)}
@@ -118,8 +130,10 @@ const RegisterForm = () => {
         />
       </div>
       <div style={{ marginBottom: "1rem" }}>
+        <label htmlFor="register-town" className="sr-only">Town</label>
         <input
           type="text"
+          id="register-town"
           placeholder="Town"
           value={town}
           onChange={(e) => setTown(e.target.value)}
@@ -127,8 +141,10 @@ const RegisterForm = () => {
           style={{ width: "48%", marginRight: "4%" }}
           autoComplete="address-level2"
         />
+        <label htmlFor="register-state" className="sr-only">State</label>
         <input
           type="text"
+          id="register-state"
           placeholder="State"
           value={state}
           onChange={(e) => setState(e.target.value)}
@@ -136,8 +152,10 @@ const RegisterForm = () => {
           style={{ width: "20%", marginRight: "4%" }}
           autoComplete="address-level1"
         />
+        <label htmlFor="register-zip" className="sr-only">Zip</label>
         <input
           type="text"
+          id="register-zip"
           placeholder="Zip"
           value={zip}
           onChange={(e) => setZip(e.target.value)}
@@ -146,8 +164,10 @@ const RegisterForm = () => {
           autoComplete="postal-code"
         />
       </div>
+      <label htmlFor="register-phone" className="sr-only">Phone Number</label>
       <input
         type="tel"
+        id="register-phone"
         placeholder="Phone Number"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}

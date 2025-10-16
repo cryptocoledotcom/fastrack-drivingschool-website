@@ -4,9 +4,18 @@
   gap: 2rem;
 }
 
-.course-info-section,
+
+.course-info-section {
+  background: var(--primary-color);
+  color: var(--white);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .modules-section {
-  background-color: #f0f0f0;
+  background: var(--dark-gray);
+  color: var(--white);
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -15,7 +24,7 @@
 .course-info-section h2,
 .modules-section h3 {
   margin-top: 0;
-  border-bottom: 1px solid #ccc;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
 }

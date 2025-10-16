@@ -36,16 +36,20 @@ const LoginForm = () => {
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
       <h2>Login</h2>
+      <label htmlFor="login-email" className="sr-only">Email</label>
       <input
         type="email"
+        id="login-email"
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
         autoComplete="email"
       />
+      <label htmlFor="login-password" className="sr-only">Password</label>
       <input
         type="password"
+        id="login-password"
         placeholder="Password"
         value={password}
         onChange={(e) => setPassword(e.target.value)}

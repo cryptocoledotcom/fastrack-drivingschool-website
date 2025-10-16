@@ -53,6 +53,7 @@
   font-family: inherit;
   font-size: inherit;
   cursor: pointer; /* Good practice for button-like elements */
+  text-shadow: -1px -1px 0 var(--white), 1px -1px 0 var(--white), -1px 1px 0 var(--white), 1px 1px 0 var(--white);
 }
 
 .login-link {
