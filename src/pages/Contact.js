@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { db } from '../Firebase'; // Assuming Firebase is initialized and db is exported from 'Firebase.js'
 import { collection, addDoc } from "firebase/firestore";
 import { useNotification } from '../components/Notification/NotificationContext';
-import './StaticPage.css';
+import './Contact.css';
 
 function Contact() {
   const { showNotification } = useNotification();
@@ -42,28 +42,32 @@ function Contact() {
   };
 
   return (
-    <div className="static-page-container">
-      <h1>Contact Us</h1>
-      <p>Have questions? We'd love to hear from you. Reach out to us via phone, email, or the contact form below.</p>
-      
-      <div className="contact-details">
-        <p><strong>Phone:</strong> {contactInfo.phone}</p>
-        <p><strong>Email:</strong> {contactInfo.email}</p>
-        <p><strong>Address:</strong> {contactInfo.address}</p>
+    <div className="contact-page-container">
+      <div className="contact-info-section">
+        <h1>Contact Us</h1>
+        <p>Have questions? We'd love to hear from you. Reach out to us via phone, email, or the contact form below.</p>
+        
+        <div className="contact-details">
+          <p><strong>Phone:</strong> {contactInfo.phone}</p>
+          <p><strong>Email:</strong> {contactInfo.email}</p>
+          <p><strong>Address:</strong> {contactInfo.address}</p>
+        </div>
       </div>
 
-      <form className="contact-form" onSubmit={handleSubmit}>
-        <label htmlFor="name">Name</label>
-        <input type="text" id="name" placeholder="Your Name" value={formData.name} onChange={handleChange} required autocomplete="name" />
-        
-        <label htmlFor="email">Email</label>
-        <input type="email" id="email" placeholder="Your Email" value={formData.email} onChange={handleChange} required autocomplete="email" />
-        
-        <label htmlFor="message">Message</label>
-        <textarea id="message" placeholder="Your Message" rows="5" value={formData.message} onChange={handleChange} required autocomplete="off"></textarea>
-        
-        <button type="submit" className="btn btn-primary">Send Message</button>
-      </form>
+      <div className="contact-form-section">
+        <form className="contact-form" onSubmit={handleSubmit}>
+          <label htmlFor="name">Name</label>
+          <input type="text" id="name" placeholder="Your Name" value={formData.name} onChange={handleChange} required autocomplete="name" />
+          
+          <label htmlFor="email">Email</label>
+          <input type="email" id="email" placeholder="Your Email" value={formData.email} onChange={handleChange} required autocomplete="email" />
+          
+          <label htmlFor="message">Message</label>
+          <textarea id="message" placeholder="Your Message" rows="5" value={formData.message} onChange={handleChange} required autocomplete="off"></textarea>
+          
+          <button type="submit" className="btn btn-primary">Send Message</button>
+        </form>
+      </div>
     </div>
   );
 }
