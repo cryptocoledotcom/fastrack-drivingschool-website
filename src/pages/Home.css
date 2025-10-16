@@ -1,0 +1,77 @@
+/* src/pages/Home.css */
+.home-container {
+  text-align: center;
+}
+
+.hero-section {
+  background: var(--primary-color);
+  color: var(--white);
+  padding: 100px 20px;
+}
+
+.hero-section h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.hero-section p {
+  font-size: 1.5rem;
+  margin-bottom: 30px;
+}
+
+.page-section {
+  background: var(--dark-gray);
+  padding: 50px 20px;
+}
+
+.page-section h2 {
+  color: var(--white);
+  margin-bottom: 30px;
+}
+
+.card-container {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+.card {
+  background: var(--white);
+  border: 1px solid var(--light-gray-3);
+  border-radius: 8px;
+  padding: 20px;
+  width: 300px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+/* Carousel custom styles */
+.carousel-root {
+  max-width: 800px;
+  margin: auto;
+}
+
+.carousel .slide {
+  background: none;
+  padding: 20px;
+  padding-bottom: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.carousel .control-dots .dot {
+  background: var(--secondary-color);
+}
+
+.carousel .control-arrow:before, .carousel.carousel-slider .control-arrow:before {
+    border-right-color: var(--secondary-color);
+    border-left-color: var(--secondary-color);
+}

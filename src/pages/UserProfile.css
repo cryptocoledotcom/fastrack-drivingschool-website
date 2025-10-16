@@ -1,0 +1,38 @@
+.profile-container {
+  gap: 2rem;
+}
+
+.user-profile-section,
+.my-courses-section {
+  background-color: var(--light-gray-2);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.user-profile-section h2,
+.my-courses-section h3 {
+  margin-top: 0;
+  border-bottom: 1px solid var(--light-gray-4);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.secondary-button {
+  background-color: var(--secondary-gray);
+  color: var(--white);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.secondary-button:hover {
+  background-color: var(--secondary-gray-hover);
+}
+
+@media (max-width: 768px) {
+  .profile-container {
+    gap: 1rem;
+  }
+}

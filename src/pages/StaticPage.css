@@ -1,0 +1,32 @@
+/* src/pages/StaticPage.css */
+.static-page-container {
+  max-width: 800px;
+  margin: 50px auto;
+  padding: 20px;
+  line-height: 1.6;
+  background: var(--primary-color);
+  color: var(--white);
+  border-radius: 8px;
+}
+
+.static-page-container h1 {
+  margin-bottom: 20px;
+}
+
+.contact-details {
+  margin: 30px 0;
+}
+
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.contact-form input,
+.contact-form textarea {
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid var(--light-gray-4);
+  border-radius: 4px;
+}

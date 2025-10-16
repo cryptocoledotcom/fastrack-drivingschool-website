@@ -1,24 +1,47 @@
-import logo from './logo.svg';
+import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import Home from './pages/Home';
+import Courses from './pages/Courses';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import LoginForm from './pages/Auth/LoginForm';
+import RegisterForm from './pages/Auth/RegisterForm';
+import UserProfile from './pages/UserProfile';
+import { AuthProvider } from './pages/Auth/AuthContext';
+import { NotificationProvider } from './components/Notification/NotificationContext';
 import './App.css';
+import './components/Button/Button.css';
+
+import CoursePage from './pages/CoursePage';
+
+
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <AuthProvider>
+        <NotificationProvider>
+          <div className="App">
+            <Navbar />
+            <main className="content">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/courses" element={<Courses />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<LoginForm />} />
+                <Route path="/register" element={<RegisterForm />} />
+                <Route path="/profile" element={<UserProfile />} />
+                <Route path="/course/:courseId" element={<CoursePage />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </NotificationProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

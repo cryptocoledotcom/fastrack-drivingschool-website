@@ -1,0 +1,106 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Carousel } from 'react-responsive-carousel';
+import 'react-responsive-carousel/lib/styles/carousel.min.css';
+import './Home.css';
+
+const testimonials = [
+  {
+    name: "Johnathen Rickenbach",
+    title: "Fast reliable business",
+    quote: "Fastrack made learning to drive a breeze! The instructors were patient and the schedule was flexible. I passed my test on the first try!"
+  },
+  {
+    name: "Ashley Smith",
+    title: "Expert Instructors",
+    quote: "A fantastic experience. The lessons were thorough and I feel much more confident on the road now. Highly recommended!"
+  },
+  {
+    name: "Patricia Mills",
+    title: "Great for nervous drivers",
+    quote: "I was very nervous about learning to drive, but the instructors at Fastrack were incredibly patient and supportive. I couldn't have done it without them!"
+  },
+  {
+    name: "Mary Williams",
+    title: "Top-notch service",
+    quote: "From booking my lessons to passing my test, the service was top-notch. The cars are modern and easy to drive. I would recommend Fastrack to anyone."
+  },
+  {
+    name: "David Garcia",
+    title: "Highly Recommend!",
+    quote: "I had a great experience with Fastrack. The instructors are very knowledgeable and make you feel comfortable behind the wheel. I passed my driving test with flying colors!"
+  },
+  {
+    name: "Sarah Martinez",
+    title: "Best Driving School in Town",
+    quote: "Fastrack is by far the best. The instructors are professional and the lessons are well-structured. I learned so much in a short amount of time."
+  },
+  {
+    name: "Brian Johnson",
+    title: "A+ Service",
+    quote: "The customer service is excellent. They were very helpful in scheduling my childs lessons and answering all our questions. I would give them an A+ rating!"
+  },
+  {
+    name: "Linda Brown",
+    title: "Finally!",
+    quote: "I had been looking into schools to help my son get his license. Thanks to Fastrack, he finally has it! The instructors were amazing and gave him the confidence he needed to succeed."
+  }
+];
+
+function Home() {
+  return (
+    <div className="home-container">
+      <header className="hero-section">
+        <h1>Welcome to Fastrack Driving School LLC.</h1>
+        <p>Your journey to becoming a safe and confident driver starts here.</p>
+        <Link to="/courses" className="btn btn-primary">View Our Courses</Link>
+      </header>
+      <section className="page-section">
+        <h2>Why Choose Us?</h2>
+        <div className="card-container">
+          <div className="card">
+            <h3>Expert Instructors</h3>
+            <p>Learn from the best, most experienced instructors in the industry.</p>
+          </div>
+          <div className="card">
+            <h3>Flexible Scheduling</h3>
+            <p>We offer a wide range of class times to fit your busy life.</p>
+          </div>
+          <div className="card">
+            <h3>Modern Fleet</h3>
+            <p>Train in new, safe, and comfortable dual-control vehicles.</p>
+          </div>
+          <div className="card">
+            <h3>Competitive Prices</h3>
+            <p>We offer competitive prices without compromising on quality.</p>
+          </div>
+          <div className="card">
+            <h3>Fast Services</h3>
+            <p>Get your license faster with our efficient and effective teaching methods.</p>
+          </div>
+        </div>
+      </section>
+      <section className="page-section">
+        <h2>What Our Customers Are Saying:</h2>
+        <Carousel
+          showArrows={true}
+          infiniteLoop={true}
+          showThumbs={false}
+          showStatus={false}
+          autoPlay={true}
+          interval={7000}
+        >
+          {testimonials.map((testimonial, index) => (
+            <div key={index} className="card">
+              <h3>{testimonial.title}</h3>
+              <p>"{testimonial.quote}"</p>
+              <p>- {testimonial.name}</p>
+            </div>
+          ))}
+        </Carousel>
+      </section>
+    </div>
+  );
+}
+
+export default Home;

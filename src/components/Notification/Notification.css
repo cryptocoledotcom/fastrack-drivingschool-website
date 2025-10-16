@@ -1,0 +1,20 @@
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 5px;
+  color: var(--white);
+  font-size: 1rem;
+  z-index: 1000;
+  min-width: 250px;
+  text-align: center;
+}
+
+.notification.success {
+  background-color: var(--secondary-color);
+}
+
+.notification.error {
+  background-color: var(--danger-color);
+}
