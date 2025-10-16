@@ -52,6 +52,7 @@
   color: var(--danger-color);
   font-family: inherit;
   font-size: inherit;
+  font-weight: bold;
   cursor: pointer; /* Good practice for button-like elements */
   text-shadow: -1px -1px 0 var(--white), 1px -1px 0 var(--white), -1px 1px 0 var(--white), 1px 1px 0 var(--white);
 }
