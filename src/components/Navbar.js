@@ -30,7 +30,7 @@ function Navbar() {
         {user ? (
           <>
             <li className="nav-item">
-              <Link to="/profile" className="nav-link">Profile</Link>
+              <Link to="/user-profile" className="nav-link">Profile</Link>
             </li>
             <li className="nav-item">
               <button onClick={logout} className="nav-link logout-button">Logout</button>

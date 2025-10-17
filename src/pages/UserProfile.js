@@ -161,8 +161,8 @@ const UserProfile = () => {
               <label htmlFor="phone" style={{ display: "block", marginBottom: "0.25rem" }}>Phone:</label>
               <input type="tel" id="phone" name="phone" value={form.phone} onChange={handleChange} required autoComplete="tel" />
             </div>
-            <button type="submit" className="btn btn-primary" style={{ marginRight: "1rem" }}>Save</button>
-            <button type="button" onClick={handleCancel} className="btn btn-secondary">Cancel</button>
+            <button type="submit" className="btn btn-secondary" style={{ marginRight: "1rem" }}>Save</button>
+            <button type="button" onClick={handleCancel} className="btn">Cancel</button>
           </form>
         ) : (
           <>
@@ -179,10 +179,10 @@ const UserProfile = () => {
               ) : "-"
             }</p>
             <p><strong>Phone:</strong> {formatPhoneNumber(profile?.phone) || "-"}</p>
-            <button onClick={handleEdit} className="btn btn-primary" style={{ marginRight: "1rem" }}>Edit</button>
+            <button onClick={handleEdit} className="btn btn-secondary" style={{ marginRight: "1rem" }}>Edit</button>
           </>
         )}
-        <button onClick={logout} className="btn btn-danger" style={{ marginTop: "1rem" }}>Logout</button>
+        <button onClick={logout} className="btn btn-danger">Logout</button>
       </div>
       <MyCourses />
     </div>

@@ -10,6 +10,7 @@
     "firebase": "^12.4.0",
     "firebase-admin": "^13.5.0",
     "react": "^19.2.0",
+    "react-calendar": "^6.0.0",
     "react-dom": "^19.2.0",
     "react-responsive-carousel": "^3.2.23",
     "react-router-dom": "^7.9.4",

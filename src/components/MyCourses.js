@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../pages/Auth/AuthContext";
 import { db } from "../Firebase";
-import { collection, getDocs, getDoc } from "firebase/firestore";
+import { collection, getDocs, getDoc, query, where, writeBatch, doc } from "firebase/firestore";
+import { useNotification } from "./Notification/NotificationContext";
 
 const MyCourses = () => {
   const { user } = useAuth();
   const [purchasedCourses, setPurchasedCourses] = useState([]);
+  const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { showNotification } = useNotification();
 
   useEffect(() => {
     const fetchPurchasedCourses = async () => {
@@ -19,11 +22,25 @@ const MyCourses = () => {
           const courseIds = new Set();
           for (const doc of purchasedCoursesSnapshot.docs) {
             const courseRef = doc.data().courseRef;
-            if (!courseIds.has(courseRef.id)) {
-              const courseDoc = await getDoc(courseRef);
-              if (courseDoc.exists()) {
-                courses.push({ id: courseDoc.id, ...courseDoc.data() });
-                courseIds.add(courseRef.id);
+            const courseDoc = await getDoc(courseRef);
+
+            if (courseDoc.exists()) {
+              const courseData = courseDoc.data();
+              if (courseData.bundledCourses) {
+                for (const bundledCourseRef of courseData.bundledCourses) {
+                  if (!courseIds.has(bundledCourseRef.id)) {
+                    const bundledCourseDoc = await getDoc(bundledCourseRef);
+                    if (bundledCourseDoc.exists()) {
+                      courses.push({ id: bundledCourseDoc.id, ...bundledCourseDoc.data() });
+                      courseIds.add(bundledCourseRef.id);
+                    }
+                  }
+                }
+              } else {
+                if (!courseIds.has(courseRef.id)) {
+                  courses.push({ id: courseDoc.id, ...courseData });
+                  courseIds.add(courseRef.id);
+                }
               }
             }
           }
@@ -32,15 +49,36 @@ const MyCourses = () => {
           console.error("Error fetching purchased courses:", error);
         }
       }
+    };
+
+    const fetchBookings = async () => {
+      if (user) {
+        try {
+          const bookingsCollection = collection(db, "bookings");
+          const q = query(bookingsCollection, where("userId", "==", user.uid));
+          const bookingsSnapshot = await getDocs(q);
+          const bookingsData = bookingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          setBookings(bookingsData);
+        } catch (error) {
+          console.error("Error fetching bookings:", error);
+        }
+      }
+    };
+
+    const fetchData = async () => {
+      await fetchPurchasedCourses();
+      await fetchBookings();
       setLoading(false);
     };
 
-    fetchPurchasedCourses();
+    fetchData();
   }, [user]);
 
   if (loading) {
     return <div>Loading...</div>;
   }
+
+  const behindTheWheelBooking = bookings.find(booking => booking.courseId === 'behind-the-wheel');
 
   return (
     <div className="my-courses-section">
@@ -51,7 +89,25 @@ const MyCourses = () => {
             <li key={course.id}>
               <h4>{course.title}</h4>
               <p>{course.description}</p>
-              <Link to={`/course/${course.id}`} className="btn btn-primary">Start Lessons</Link>
+              {course.title === 'Behind the Wheel Driving Course' ? (
+                behindTheWheelBooking ? (
+                  <div>
+                    <p><strong>Upcoming Lesson:</strong></p>
+                    <p>{new Date(behindTheWheelBooking.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} at {behindTheWheelBooking.time}</p>
+                    <Link
+                      to="/calendar"
+                      state={{ bookingIdToReschedule: behindTheWheelBooking.id }}
+                      className="btn btn-secondary"
+                    >
+                      Reschedule
+                    </Link>
+                  </div>
+                ) : (
+                  <Link to="/calendar" className="btn btn-primary">Schedule Driving Lessons</Link>
+                )
+              ) : (
+                <Link to={`/course/${course.id}`} className="btn btn-primary">Start Lessons</Link>
+              )}
             </li>
           ))}
         </ul>

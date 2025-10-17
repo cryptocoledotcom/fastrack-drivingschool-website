@@ -1,7 +1,7 @@
 :root {
   --primary-color: rebeccapurple;
-  --secondary-color: #1abc9c;
-  --secondary-color-hover: #16a085;
+  --secondary-color: #008080; /* Teal */
+  --secondary-color-hover: #006666; /* Darker Teal */
   --danger-color: #e74c3c;
   --danger-color-hover: #c0392b;
   --dark-gray: #333;

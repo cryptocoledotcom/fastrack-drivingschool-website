@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { db } from "../Firebase";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { useAuth } from "./Auth/AuthContext";
@@ -53,32 +53,37 @@ const CoursePage = () => {
       <div className="course-info-section">
         <h2>{course?.title}</h2>
         <p>{course?.description}</p>
+        {course?.title === 'Behind the Wheel Driving Course' ? (
+          <Link to="/calendar" className="btn btn-primary">Schedule Driving Lessons</Link>
+        ) : null}
       </div>
-      <div className="modules-section">
-        <h3>Modules</h3>
-        <ul style={{ listStyleType: "none", padding: 0 }}>
-          {modules.map((module, index) => (
-            <li key={module.id}>
-              <h4>{module.title}</h4>
-              <p>{module.description}</p>
-              <button 
-                style={{ 
-                  backgroundColor: index === 0 ? "#40E0D0" : "red", 
-                  color: "white", 
-                  border: "none", 
-                  padding: "0.5rem 1rem", 
-                  borderRadius: "4px",
-                  cursor: "pointer"
-                }}
-                disabled={index !== 0}
-                title={index !== 0 ? "Complete the previous module with a score of 80% or better to unlock this module." : ""}
-              >
-                Start Module
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {course?.title !== 'Behind the Wheel Driving Course' && (
+        <div className="modules-section">
+          <h3>Modules</h3>
+          <ul style={{ listStyleType: "none", padding: 0 }}>
+            {modules.map((module, index) => (
+              <li key={module.id}>
+                <h4>{module.title}</h4>
+                <p>{module.description}</p>
+                <button 
+                  style={{ 
+                    backgroundColor: index === 0 ? "#40E0D0" : "red", 
+                    color: "white", 
+                    border: "none", 
+                    padding: "0.5rem 1rem", 
+                    borderRadius: "4px",
+                    cursor: "pointer"
+                  }}
+                  disabled={index !== 0}
+                  title={index !== 0 ? "Complete the previous module with a score of 80% or better to unlock this module." : ""}
+                >
+                  Start Module
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

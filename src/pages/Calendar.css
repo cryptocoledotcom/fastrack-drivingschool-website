@@ -1,0 +1,65 @@
+.calendar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: var(--dark-gray);
+  color: white;
+  padding: 2rem;
+}
+
+.calendar-header {
+  background-color: rebeccapurple;
+  color: white;
+  padding: 1rem;
+  width: 100%;
+  text-align: center;
+}
+
+.calendar-wrapper {
+  margin-bottom: 1rem;
+}
+
+.react-calendar {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.react-calendar__tile--active {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+}
+
+.react-calendar__tile--now {
+  background-color: var(--light-gray-3) !important;
+}
+
+.react-calendar__navigation button {
+  color: var(--primary-color);
+}
+
+.react-calendar__month-view__days__day--weekend {
+  color: var(--secondary-color);
+}
+
+.time-slots-container {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.time-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.btn.selected {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+}
+
+.booking-confirmation {
+  margin-top: 1rem;
+  text-align: center;
+}

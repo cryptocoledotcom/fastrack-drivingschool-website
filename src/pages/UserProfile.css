@@ -18,17 +18,21 @@
   margin-bottom: 1rem;
 }
 
-.secondary-button {
-  background-color: var(--secondary-gray);
+.btn-secondary {
+  background-color: var(--secondary-color) !important;
   color: var(--white);
   border: none;
-  padding: 0.5rem 1rem;
+  padding: 10px 15px;
   border-radius: 4px;
   cursor: pointer;
 }
 
-.secondary-button:hover {
-  background-color: var(--secondary-gray-hover);
+.btn-secondary:hover {
+  background-color: var(--secondary-color-hover) !important;
+}
+
+.my-courses-section ul li {
+  margin-bottom: 1.5rem;
 }
 
 @media (max-width: 768px) {

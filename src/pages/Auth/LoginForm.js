@@ -17,7 +17,7 @@ const LoginForm = () => {
     try {
       await loginUser(email, password);
       setSuccess("Login successful! Redirecting to your profile...");
-      navigate("/profile");
+      navigate("/user-profile");
     } catch (err) {
       switch (err.code) {
         case "auth/user-not-found":
