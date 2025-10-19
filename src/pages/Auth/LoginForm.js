@@ -60,6 +60,9 @@ const LoginForm = () => {
       {success && <p className="success-message">{success}</p>}
       {error && <p className="error-message">{error}</p>}
       <p className="auth-switch">
+        <Link to="/forgot-password">Forgot Password?</Link>
+      </p>
+      <p className="auth-switch">
         Don't have an account? <Link to="/register">Create an account</Link>
       </p>
     </form>

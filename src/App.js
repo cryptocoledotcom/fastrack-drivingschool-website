@@ -8,6 +8,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import LoginForm from './pages/Auth/LoginForm';
 import RegisterForm from './pages/Auth/RegisterForm';
+import ForgotPassword from './pages/Auth/ForgotPassword';
 import UserProfile from './pages/UserProfile';
 import CalendarPage from './pages/Calendar';
 import { AuthProvider } from './pages/Auth/AuthContext';
@@ -36,6 +37,7 @@ function App() {
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<LoginForm />} />
                 <Route path="/register" element={<RegisterForm />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/user-profile" element={<UserProfile />} />
                 <Route path="/course/:courseId" element={<CoursePage />} />
                 <Route path="/calendar" element={<CalendarPage />} />

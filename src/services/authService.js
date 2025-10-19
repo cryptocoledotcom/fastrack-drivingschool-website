@@ -3,7 +3,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signOut 
+  signOut, 
+  sendPasswordResetEmail
 } from 'firebase/auth';
 
 export const getUserRole = async (uid) => {
@@ -21,4 +22,8 @@ export const loginUser = (email, password) => {
 
 export const logoutUser = () => {
   return signOut(auth);
+};
+
+export const sendPasswordReset = (email) => {
+  return sendPasswordResetEmail(auth, email);
 };
