@@ -7,20 +7,20 @@ import { useNotification } from "./Notification/NotificationContext";
 
 const MyCourses = () => {
   const { user } = useAuth();
-  const [purchasedCourses, setPurchasedCourses] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const { showNotification } = useNotification();
 
   useEffect(() => {
-    const fetchPurchasedCourses = async () => {
+    const fetchCourses = async () => {
       if (user) {
         try {
-          const purchasedCoursesCollection = collection(db, "users", user.uid, "purchased_courses");
-          const purchasedCoursesSnapshot = await getDocs(purchasedCoursesCollection);
-          const courses = [];
+          const coursesCollection = collection(db, "users", user.uid, "courses");
+          const coursesSnapshot = await getDocs(coursesCollection);
+          const coursesData = [];
           const courseIds = new Set();
-          for (const doc of purchasedCoursesSnapshot.docs) {
+          for (const doc of coursesSnapshot.docs) {
             const courseRef = doc.data().courseRef;
             const courseDoc = await getDoc(courseRef);
 
@@ -31,22 +31,22 @@ const MyCourses = () => {
                   if (!courseIds.has(bundledCourseRef.id)) {
                     const bundledCourseDoc = await getDoc(bundledCourseRef);
                     if (bundledCourseDoc.exists()) {
-                      courses.push({ id: bundledCourseDoc.id, ...bundledCourseDoc.data() });
+                      coursesData.push({ id: bundledCourseDoc.id, ...bundledCourseDoc.data() });
                       courseIds.add(bundledCourseRef.id);
                     }
                   }
                 }
               } else {
                 if (!courseIds.has(courseRef.id)) {
-                  courses.push({ id: courseDoc.id, ...courseData });
+                  coursesData.push({ id: courseDoc.id, ...courseData });
                   courseIds.add(courseRef.id);
                 }
               }
             }
           }
-          setPurchasedCourses(courses);
+          setCourses(coursesData);
         } catch (error) {
-          console.error("Error fetching purchased courses:", error);
+          console.error("Error fetching courses:", error);
         }
       }
     };
@@ -66,7 +66,7 @@ const MyCourses = () => {
     };
 
     const fetchData = async () => {
-      await fetchPurchasedCourses();
+      await fetchCourses();
       await fetchBookings();
       setLoading(false);
     };
@@ -83,9 +83,9 @@ const MyCourses = () => {
   return (
     <div className="my-courses-section">
       <h3>My Courses</h3>
-      {purchasedCourses.length > 0 ? (
+      {courses.length > 0 ? (
         <ul style={{ listStyleType: "none", padding: 0 }}>
-          {purchasedCourses.map(course => (
+          {courses.map(course => (
             <li key={course.id}>
               <h4>{course.title}</h4>
               <p>{course.description}</p>

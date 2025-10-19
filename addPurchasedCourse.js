@@ -11,21 +11,21 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-const addPurchasedCourse = async () => {
+const addCourse = async () => {
   try {
     const userId = 'tkr4zpyuDbYrkAlYvJ9OCXDIVr52';
     const courseId = 'FOs7n1QzCe00cvSPDfuN';
 
-    const purchasedCourseRef = await db.collection('users').doc(userId).collection('purchased_courses').add({
+    const courseRef = await db.collection('users').doc(userId).collection('courses').add({
       courseRef: db.collection('courses').doc(courseId)
     });
 
-    await db.collection('users').doc(userId).collection('purchased_courses').doc(purchasedCourseRef.id).collection('completed_modules').add({});
+    await db.collection('users').doc(userId).collection('courses').doc(courseRef.id).collection('completed_modules').add({});
 
-    console.log(`Added purchased course to user ${userId}`);
+    console.log(`Added course to user ${userId}`);
   } catch (error) {
-    console.error('Error adding purchased course:', error);
+    console.error('Error adding course:', error);
   }
 };
 
-addPurchasedCourse();
+addCourse();

@@ -49,32 +49,34 @@ const ManageTimeSlots = () => {
   return (
     <div>
       <h3>Manage Time Slots</h3>
-      <Calendar onChange={setDate} value={date} />
       <div className="time-slots-manager">
-        <h4>Time Slots for {date.toDateString()}</h4>
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <div>
-            <ul>
-              {timeSlots.map((slot, index) => (
-                <li key={index}>
-                  {slot}
-                  <button onClick={() => handleRemoveTimeSlot(slot)}>Remove</button>
-                </li>
-              ))}
-            </ul>
-            <div className="add-time-slot">
-              <input
-                type="text"
-                value={newTimeSlot}
-                onChange={(e) => setNewTimeSlot(e.target.value)}
-                placeholder="e.g., 10:00 AM"
-              />
-              <button onClick={handleAddTimeSlot}>Add Time Slot</button>
+        <Calendar onChange={setDate} value={date} />
+        <div>
+          <h4>Time Slots for {date.toDateString()}</h4>
+          {loading ? (
+            <p>Loading...</p>
+          ) : (
+            <div>
+              <ul>
+                {timeSlots.map((slot, index) => (
+                  <li key={index}>
+                    {slot}
+                    <button className="remove-button" onClick={() => handleRemoveTimeSlot(slot)}>Remove</button>
+                  </li>
+                ))}
+              </ul>
+              <div className="add-time-slot">
+                <input
+                  type="text"
+                  value={newTimeSlot}
+                  onChange={(e) => setNewTimeSlot(e.target.value)}
+                  placeholder="e.g., 10:00 AM"
+                />
+                <button onClick={handleAddTimeSlot}>Add Time Slot</button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

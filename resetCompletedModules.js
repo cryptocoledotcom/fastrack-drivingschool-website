@@ -16,19 +16,19 @@ const resetCompletedModules = async () => {
     const userId = 'tkr4zpyuDbYrkAlYvJ9OCXDIVr52';
     const courseId = 'FOs7n1QzCe00cvSPDfuN';
 
-    const purchasedCoursesCollection = db.collection('users').doc(userId).collection('purchased_courses');
-    const purchasedCoursesSnapshot = await purchasedCoursesCollection.where('courseRef', '==', db.collection('courses').doc(courseId)).get();
+    const coursesCollection = db.collection('users').doc(userId).collection('courses');
+    const coursesSnapshot = await coursesCollection.where('courseRef', '==', db.collection('courses').doc(courseId)).get();
 
-    console.log('purchasedCoursesSnapshot.empty:', purchasedCoursesSnapshot.empty);
+    console.log('coursesSnapshot.empty:', coursesSnapshot.empty);
 
-    if (purchasedCoursesSnapshot.empty) {
-      console.log('No purchased course found for this user and course.');
+    if (coursesSnapshot.empty) {
+      console.log('No course found for this user and course.');
       return;
     }
 
-    const purchasedCourseId = purchasedCoursesSnapshot.docs[0].id;
+    const courseDocId = coursesSnapshot.docs[0].id;
 
-    const completedModulesCollection = db.collection('users').doc(userId).collection('purchased_courses').doc(purchasedCourseId).collection('completed_modules');
+    const completedModulesCollection = db.collection('users').doc(userId).collection('courses').doc(courseDocId).collection('completed_modules');
     const completedModulesSnapshot = await completedModulesCollection.get();
 
     console.log('completedModulesSnapshot.empty:', completedModulesSnapshot.empty);
@@ -40,7 +40,7 @@ const resetCompletedModules = async () => {
 
     await batch.commit();
 
-    console.log(`Reset completed modules for user ${userId} and purchased course ${purchasedCourseId}`);
+    console.log(`Reset completed modules for user ${userId} and course ${courseDocId}`);
   } catch (error) {
     console.error('Error resetting completed modules:', error);
   }

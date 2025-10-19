@@ -1,0 +1,134 @@
+/* Admin.css */
+
+.admin-container {
+  padding: 2rem;
+  background-color: #f9f9f9;
+}
+
+.admin-section {
+  background-color: #fff;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.admin-section h3 {
+  margin-top: 0;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.user-search input[type="text"],
+.add-course select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.user-search ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.user-search li {
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.user-search li:hover {
+  background-color: #f0f0f0;
+}
+
+.add-course button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.add-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-left: 1rem;
+}
+
+.add-button:hover {
+    background-color: #45a049;
+}
+
+.time-slots-manager {
+  display: flex;
+  gap: 2rem;
+}
+
+.react-calendar {
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.add-time-slot input[type="text"] {
+    width: 100%;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.add-time-slot button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.add-time-slot button:hover {
+    background-color: #45a049;
+}
+
+.remove-button {
+    background-color: #f44336;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-left: 1rem;
+}
+
+.remove-button:hover {
+    background-color: #d32f2f;
+}
+
+.user-courses-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.user-courses-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+}

@@ -1,6 +1,8 @@
 import React from 'react';
 import ManageTimeSlots from '../components/Admin/ManageTimeSlots';
+import ManageUserCourses from '../components/Admin/ManageUserCourses';
 import { useAuth } from './Auth/AuthContext';
+import './Admin.css';
 
 const Admin = () => {
   const { user } = useAuth();
@@ -18,9 +20,14 @@ const Admin = () => {
   }
 
   return (
-    <div className="container">
+    <div className="admin-container">
       <h1>Admin Page</h1>
-      <ManageTimeSlots />
+      <div className="admin-section">
+        <ManageTimeSlots />
+      </div>
+      <div className="admin-section">
+        <ManageUserCourses />
+      </div>
     </div>
   );
 };
