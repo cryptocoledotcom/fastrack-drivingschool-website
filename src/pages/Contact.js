@@ -45,7 +45,7 @@ function Contact() {
     <div className="contact-page-container">
       <div className="contact-info-section">
         <h1>Contact Us</h1>
-        <p>Have questions? We'd love to hear from you. Reach out to us via phone, email, or the contact form below.</p>
+        <p>Have questions? We'd love to hear from you. Reach out to us via phone, email, or simply fill out the contact form below, and we'll get back to you as soon as possible.</p>
         
         <div className="contact-details">
           <p><strong>Phone:</strong> {contactInfo.phone}</p>
