@@ -20,12 +20,13 @@ const MyCourses = () => {
           const coursesSnapshot = await getDocs(coursesCollection);
           const coursesData = [];
           const courseIds = new Set();
-          for (const doc of coursesSnapshot.docs) {
-            const courseRef = doc.data().courseRef;
-            const courseDoc = await getDoc(courseRef);
+          for (const courseDoc of coursesSnapshot.docs) {
+            const courseId = courseDoc.data().courseId;
+            const courseRef = doc(db, 'courses', courseId);
+            const fetchedCourseDoc = await getDoc(courseRef);
 
-            if (courseDoc.exists()) {
-              const courseData = courseDoc.data();
+            if (fetchedCourseDoc.exists()) {
+              const courseData = fetchedCourseDoc.data();
               if (courseData.bundledCourses) {
                 for (const bundledCourseRef of courseData.bundledCourses) {
                   if (!courseIds.has(bundledCourseRef.id)) {
@@ -37,9 +38,9 @@ const MyCourses = () => {
                   }
                 }
               } else {
-                if (!courseIds.has(courseRef.id)) {
-                  coursesData.push({ id: courseDoc.id, ...courseData });
-                  courseIds.add(courseRef.id);
+                if (!courseIds.has(courseId)) {
+                  coursesData.push({ id: fetchedCourseDoc.id, ...courseData });
+                  courseIds.add(courseId);
                 }
               }
             }

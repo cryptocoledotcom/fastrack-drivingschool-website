@@ -33,7 +33,7 @@ const ManageUserCourses = () => {
         const purchasedCoursesData = await Promise.all(purchasedCoursesCollection.docs.map(async (doc) => {
           const courseData = doc.data();
           const courseDoc = await getDoc(courseData.courseRef);
-          return { ...courseDoc.data(), id: doc.id };
+          return { ...courseDoc.data(), id: courseDoc.id, purchasedCourseDocId: doc.id };
         }));
         setPurchasedCourses(purchasedCoursesData);
       };
@@ -62,7 +62,8 @@ const ManageUserCourses = () => {
       const purchasedCourseRef = doc(collection(db, 'users', selectedUser.id, 'courses'));
 
       batch.set(purchasedCourseRef, {
-        courseRef: doc(db, 'courses', selectedCourse)
+        courseRef: doc(db, 'courses', selectedCourse),
+        courseId: selectedCourse
       });
 
       const completedModulesRef = doc(collection(purchasedCourseRef, 'completed_modules'));
@@ -78,7 +79,7 @@ const ManageUserCourses = () => {
         const purchasedCoursesData = await Promise.all(purchasedCoursesCollection.docs.map(async (doc) => {
           const courseData = doc.data();
           const courseDoc = await getDoc(courseData.courseRef);
-          return { ...courseDoc.data(), id: doc.id };
+          return { ...courseDoc.data(), id: courseDoc.id, purchasedCourseDocId: doc.id };
         }));
         setPurchasedCourses(purchasedCoursesData);
       };
@@ -89,12 +90,12 @@ const ManageUserCourses = () => {
     }
   };
 
-  const handleRemoveCourse = async (courseId) => {
+  const handleRemoveCourse = async (purchasedCourseDocId) => {
     if (!selectedUser) return;
 
     try {
       const batch = writeBatch(db);
-      const courseRef = doc(db, 'users', selectedUser.id, 'courses', courseId);
+      const courseRef = doc(db, 'users', selectedUser.id, 'courses', purchasedCourseDocId);
 
       // Delete subcollections
       const completedModulesCollection = await getDocs(collection(courseRef, 'completed_modules'));
@@ -105,7 +106,7 @@ const ManageUserCourses = () => {
       await batch.commit();
 
       showNotification('Course removed successfully!', 'success');
-      setPurchasedCourses(purchasedCourses.filter(course => course.id !== courseId));
+      setPurchasedCourses(purchasedCourses.filter(course => course.purchasedCourseDocId !== purchasedCourseDocId));
     } catch (error) {
       showNotification('Error removing course. Please try again.', 'error');
       console.error('Error removing course: ', error);
@@ -154,9 +155,9 @@ const ManageUserCourses = () => {
             <h5>Purchased Courses</h5>
             <ul>
               {purchasedCourses.map(course => (
-                <li key={course.id}>
+                <li key={course.purchasedCourseDocId}>
                   {course.title}
-                  <button onClick={() => handleRemoveCourse(course.id)} className="remove-button">Remove</button>
+                  <button onClick={() => handleRemoveCourse(course.purchasedCourseDocId)} className="remove-button">Remove</button>
                 </li>
               ))}
             </ul>

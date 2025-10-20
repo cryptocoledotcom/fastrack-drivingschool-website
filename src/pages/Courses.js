@@ -1,38 +1,33 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { db } from '../Firebase';
-import { collection, getDocs, doc, setDoc, addDoc } from 'firebase/firestore';
-import { useAuth } from './Auth/AuthContext';
-import { useNotification } from '../components/Notification/NotificationContext';
+import { collection, getDocs } from 'firebase/firestore';
 import './Courses.css';
 
 function Courses() {
   const [courses, setCourses] = useState([]);
-  const { user } = useAuth();
-  const { showNotification } = useNotification();
 
   useEffect(() => {
     const fetchCourses = async () => {
       const coursesCollection = await getDocs(collection(db, 'courses'));
-      setCourses(coursesCollection.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const fetchedCourses = coursesCollection.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Define the desired order of course titles
+      const desiredOrder = [
+        'Online Driving Course',
+        'Behind the Wheel Driving Course',
+        'Online & Behind the Wheel Driving Course'
+      ];
+
+      // Sort the courses based on the desired order
+      fetchedCourses.sort((a, b) => {
+        return desiredOrder.indexOf(a.title) - desiredOrder.indexOf(b.title);
+      });
+
+      setCourses(fetchedCourses);
     };
     fetchCourses();
   }, []);
-
-  const handleEnroll = async (courseId) => {
-    if (!user) {
-      showNotification('You must be logged in to enroll in a course.', 'error');
-      return;
-    }
-    try {
-      const purchasedCourseRef = await addDoc(collection(db, 'users', user.uid, 'purchased_courses'), {
-        courseRef: doc(db, 'courses', courseId)
-      });
-      showNotification('You have successfully enrolled in the course!', 'success');
-    } catch (error) {
-      showNotification('Error enrolling in the course. Please try again.', 'error');
-      console.error('Error enrolling in course: ', error);
-    }
-  };
 
   return (
     <>
@@ -46,9 +41,8 @@ function Courses() {
           {courses.map(course => (
             <div key={course.id} className="course-card">
               <h2>{course.title}</h2>
-              <p>{course.description}</p>
               <p className="course-price">${course.price}</p>
-              <button className="btn btn-primary" onClick={() => handleEnroll(course.id)}>Enroll Now</button>
+              <Link to={`/courses/${course.id}`} className="btn btn-primary">Course Information</Link>
             </div>
           ))}
         </div>

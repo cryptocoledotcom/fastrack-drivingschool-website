@@ -12,14 +12,11 @@ import ForgotPassword from './pages/Auth/ForgotPassword';
 import UserProfile from './pages/UserProfile';
 import CalendarPage from './pages/Calendar';
 import { AuthProvider } from './pages/Auth/AuthContext';
+import CourseDetail from './pages/CourseDetail';
 import { NotificationProvider } from './components/Notification/NotificationContext';
 import './App.css';
 import './components/Button/Button.css';
-
-import CoursePage from './pages/CoursePage';
-
-
-
+ 
 import Admin from './pages/Admin';
 
 function App() {
@@ -33,13 +30,13 @@ function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/courses" element={<Courses />} />
+                <Route path="/courses/:courseId" element={<CourseDetail />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<LoginForm />} />
                 <Route path="/register" element={<RegisterForm />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/user-profile" element={<UserProfile />} />
-                <Route path="/course/:courseId" element={<CoursePage />} />
                 <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/admin" element={<Admin />} />
               </Routes>
