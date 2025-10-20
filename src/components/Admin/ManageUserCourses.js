@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../Firebase';
-import { collection, getDocs, doc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, writeBatch, getDoc } from 'firebase/firestore';
 import { useNotification } from '../Notification/NotificationContext';
 
 const ManageUserCourses = () => {
@@ -9,12 +9,11 @@ const ManageUserCourses = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [purchasedCourses, setPurchasedCourses] = useState([]);
   const { showNotification } = useNotification();
 
   useEffect(() => {
     const fetchUsersAndCourses = async () => {
-      setLoading(true);
       const usersCollection = await getDocs(collection(db, 'users'));
       setUsers(usersCollection.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       const coursesCollection = await getDocs(collection(db, 'courses'));
@@ -23,10 +22,24 @@ const ManageUserCourses = () => {
         return { ...data, id: doc.id };
       });
       setCourses(coursesData);
-      setLoading(false);
     };
     fetchUsersAndCourses();
   }, []);
+
+  useEffect(() => {
+    if (selectedUser) {
+      const fetchPurchasedCourses = async () => {
+        const purchasedCoursesCollection = await getDocs(collection(db, 'users', selectedUser.id, 'courses'));
+        const purchasedCoursesData = await Promise.all(purchasedCoursesCollection.docs.map(async (doc) => {
+          const courseData = doc.data();
+          const courseDoc = await getDoc(courseData.courseRef);
+          return { ...courseDoc.data(), id: doc.id };
+        }));
+        setPurchasedCourses(purchasedCoursesData);
+      };
+      fetchPurchasedCourses();
+    }
+  }, [selectedUser]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -59,9 +72,43 @@ const ManageUserCourses = () => {
 
       showNotification('Course added successfully!', 'success');
       setSelectedCourse('');
+      // Refresh purchased courses
+      const fetchPurchasedCourses = async () => {
+        const purchasedCoursesCollection = await getDocs(collection(db, 'users', selectedUser.id, 'courses'));
+        const purchasedCoursesData = await Promise.all(purchasedCoursesCollection.docs.map(async (doc) => {
+          const courseData = doc.data();
+          const courseDoc = await getDoc(courseData.courseRef);
+          return { ...courseDoc.data(), id: doc.id };
+        }));
+        setPurchasedCourses(purchasedCoursesData);
+      };
+      fetchPurchasedCourses();
     } catch (error) {
       showNotification('Error adding course. Please try again.', 'error');
       console.error('Error adding course: ', error);
+    }
+  };
+
+  const handleRemoveCourse = async (courseId) => {
+    if (!selectedUser) return;
+
+    try {
+      const batch = writeBatch(db);
+      const courseRef = doc(db, 'users', selectedUser.id, 'courses', courseId);
+
+      // Delete subcollections
+      const completedModulesCollection = await getDocs(collection(courseRef, 'completed_modules'));
+      completedModulesCollection.docs.forEach(doc => batch.delete(doc.ref));
+
+      batch.delete(courseRef);
+
+      await batch.commit();
+
+      showNotification('Course removed successfully!', 'success');
+      setPurchasedCourses(purchasedCourses.filter(course => course.id !== courseId));
+    } catch (error) {
+      showNotification('Error removing course. Please try again.', 'error');
+      console.error('Error removing course: ', error);
     }
   };
 
@@ -102,6 +149,17 @@ const ManageUserCourses = () => {
               ))}
             </select>
             <button onClick={handleAddCourse}>Add Course</button>
+          </div>
+          <div className="purchased-courses">
+            <h5>Purchased Courses</h5>
+            <ul>
+              {purchasedCourses.map(course => (
+                <li key={course.id}>
+                  {course.title}
+                  <button onClick={() => handleRemoveCourse(course.id)}>Remove</button>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
