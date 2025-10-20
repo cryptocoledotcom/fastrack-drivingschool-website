@@ -1,10 +1,18 @@
-.course-detail-container {
-    padding: 2rem;
+.course-detail-header {
     background-color: #fff;
+    padding: 2rem;
     max-width: 900px;
-    margin: 2rem auto;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin: 2rem auto 0;
+    border-radius: 8px 8px 0 0;
+}
+
+.course-detail-body {
+    background: var(--dark-gray);
+    color: var(--white);
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto 2rem;
+    border-radius: 0 0 8px 8px;
 }
 
 .course-detail-price {
@@ -17,4 +25,34 @@
 .course-detail-description {
     font-size: 1.1rem;
     line-height: 1.6;
+}
+
+.online-course-description h2,
+.online-course-description h3,
+.online-course-description p,
+.online-course-description li {
+    color: var(--white);
+}
+
+.online-course-description h2 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.online-course-description h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.online-course-description ul {
+    list-style-type: none;
+    padding-left: 20px;
+}
+
+.online-course-description li {
+    margin-bottom: 0.5rem;
+}
+
+.online-course-description strong {
+    font-weight: bold;
 }

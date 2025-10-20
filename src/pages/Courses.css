@@ -13,10 +13,46 @@
   color: var(--white);
 }
 
+.features-container {
+  background: var(--light-gray-1);
+  padding: 50px 20px;
+  text-align: center;
+}
+
+.features-title {
+  color: var(--dark-gray);
+  margin-bottom: 30px;
+}
+
+.feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 30px;
+}
+
+.feature-card {
+  background: var(--white);
+  border: 1px solid var(--light-gray-3);
+  border-radius: 8px;
+  padding: 20px;
+  width: 300px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.feature-card h2 {
+  font-size: 1.5rem;
+  color: var(--dark-gray);
+}
+
 .course-list-container {
   background: var(--dark-gray);
   padding: 50px 20px;
   text-align: center;
+}
+
+.courses-title {
+    color: var(--white);
 }
 
 .course-list {
