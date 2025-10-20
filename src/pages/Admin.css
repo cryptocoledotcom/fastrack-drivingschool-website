@@ -132,3 +132,13 @@
     padding: 0.5rem 0;
     border-bottom: 1px solid #eee;
 }
+
+/* Force the remove button in the user courses list to be red */
+.user-courses-list li .remove-button,
+.user-courses-list li button {
+    background-color: #f44336 !important;
+}
+.user-courses-list li .remove-button:hover,
+.user-courses-list li button:hover {
+    background-color: #d32f2f !important;
+}

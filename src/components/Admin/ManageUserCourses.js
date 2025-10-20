@@ -148,7 +148,7 @@ const ManageUserCourses = () => {
                 <option key={course.id} value={course.id}>{course.title}</option>
               ))}
             </select>
-            <button onClick={handleAddCourse}>Add Course</button>
+            <button onClick={handleAddCourse} className="add-button">Add Course</button>
           </div>
           <div className="purchased-courses">
             <h5>Purchased Courses</h5>
@@ -156,7 +156,7 @@ const ManageUserCourses = () => {
               {purchasedCourses.map(course => (
                 <li key={course.id}>
                   {course.title}
-                  <button onClick={() => handleRemoveCourse(course.id)}>Remove</button>
+                  <button onClick={() => handleRemoveCourse(course.id)} className="remove-button">Remove</button>
                 </li>
               ))}
             </ul>
