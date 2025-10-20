@@ -7,8 +7,11 @@ import './Admin.css';
 const Admin = () => {
   const { user } = useAuth();
 
-  // For now, we'll hardcode the admin UID. In a real application, you would want to have a more robust role-based system.
-  const isAdmin = user && user.uid === 'tkr4zpyuDbYrkAlYvJ9OCXDIVr52';
+  // TODO: Replace hardcoded UID with a role-based system.
+  // This could involve checking a 'role' field on the user object
+  // which is fetched from Firestore after login.
+  // For example: const isAdmin = user && user.role === 'admin';
+  const isAdmin = user && user.uid === 'tkr4zpyuDbYrkAlYvJ9OCXDIVr52'; // This is the user's UID, not a secret key.
 
   if (!isAdmin) {
     return (
