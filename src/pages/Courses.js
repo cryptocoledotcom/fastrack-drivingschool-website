@@ -32,10 +32,14 @@ function Courses() {
   return (
     <>
       <div className="course-info-container">
-        <h1>Course Information</h1>
-        <h2>Currently, Fastrack Driving School provides classes for 16-21 year old students and first time license seekers</h2>
-        <h2>The Department of Public Safety in Ohio requires each student to attend driver's training. The mandate for driver training is 24 hours of Classroom Lessons and 8 hours of behind-the-wheel instruction.</h2>
-        <h2>Students can rest assured that we will handle everything in preparation for their upcoming licensing exam with the state. Online scheduling of driving times can be accessed through the students profile. Automated messages will be sent reminding students of their upcoming driver instructed lesson as well as real-time updates.</h2>
+        <h1>Ohio Driver's Training Made Simple:</h1>
+        <h2>Fastrack Driving School offers state-approved driver's education for new drivers aged 16-21. Our program provides everything you need to meet the Ohio Department of Public Safety requirements and confidently prepare for your licensing exam.</h2>
+        <h1>Complete State-Approved Program:</h1> 
+        <h2>We provide the full 24 hours of classroom lessons and 8 hours of behind-the-wheel instruction required by the state of Ohio.</h2>
+        <h1>Convenient Online Scheduling:</h1> 
+        <h2>Manage your in-car lessons with ease. Your online student profile allows you to book driving times, receive real-time updates, and get automated reminders for upcoming appointments.</h2>
+        <h1>Full Exam Preparation:</h1> 
+        <h2>We guide you through every step of the process, ensuring you have the knowledge, skill, and confidence needed to succeed on your exam and become a safe driver.</h2>
       </div>
       <div className="course-list-container">
         <h1 className="courses-title">Our Courses</h1>

@@ -88,7 +88,7 @@ function Home() {
           showThumbs={false}
           showStatus={false}
           autoPlay={true}
-          interval={7000}
+          interval={5000}
         >
           {testimonials.map((testimonial, index) => (
             <div key={index} className="card">
