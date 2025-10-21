@@ -63,7 +63,7 @@ const LoginForm = () => {
         <Link to="/forgot-password">Forgot Password?</Link>
       </p>
       <p className="auth-switch">
-        Don't have an account? <Link to="/register">Create an account</Link>
+        Don't have an account? <Link to="/sign-up">Create an account</Link>
       </p>
     </form>
   );
