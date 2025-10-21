@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { db } from "../Firebase.js"; // Corrected import path
-import { collection, getDocs, doc, getDoc, query, orderBy } from "firebase/firestore";
-import { useAuth } from "./Auth/AuthContext.js"; // Corrected import path
-import "./CoursePage.css"; // Corrected import path
+import { db } from "../Firebase";
+import { collection, getDocs, doc, getDoc, query, orderBy, where, setDoc, limit } from "firebase/firestore";
+import { useAuth } from "./Auth/AuthContext";
+import "./CoursePage.css";
 
 const CoursePage = () => {
   const { courseId } = useParams();
@@ -11,26 +11,54 @@ const CoursePage = () => {
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
   const [currentLesson, setCurrentLesson] = useState(null);
+  const [completedLessons, setCompletedLessons] = useState(new Set());
+  const [userCourseId, setUserCourseId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Find the specific "courses" document for this user and course
   useEffect(() => {
+    const findUserCourse = async () => {
+      if (!user || !courseId) return;
+      
+      const userCoursesRef = collection(db, "users", user.uid, "courses");
+      // Query using the courseId string instead of a document reference
+      const q = query(userCoursesRef, where("courseId", "==", courseId), limit(1));
+      
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty) {
+        const userCourseDoc = querySnapshot.docs[0];
+        setUserCourseId(userCourseDoc.id);
+      } else {
+        setError("You do not have access to this course.");
+        setLoading(false);
+      }
+    };
+    findUserCourse();
+  }, [user, courseId]);
+
+  // Fetch all course content and user progress
+  useEffect(() => {
+    if (!user || !userCourseId) return;
+
     const fetchCourseContent = async () => {
-      if (!user) return;
       setLoading(true);
       setError('');
       
       try {
-        // 1. Fetch the main course document
+        // 1. Fetch user's completed lessons
+        const progressRef = collection(db, "users", user.uid, "courses", userCourseId, "completed_lessons");
+        const progressSnapshot = await getDocs(progressRef);
+        const completedIds = new Set(progressSnapshot.docs.map(doc => doc.id));
+        setCompletedLessons(completedIds);
+
+        // 2. Fetch the main course document
         const courseRef = doc(db, "courses", courseId);
         const courseSnap = await getDoc(courseRef);
-
-        if (!courseSnap.exists()) {
-          throw new Error("Course not found.");
-        }
+        if (!courseSnap.exists()) throw new Error("Course not found.");
         setCourse({ id: courseSnap.id, ...courseSnap.data() });
 
-        // 2. Fetch the modules and their lessons
+        // 3. Fetch modules and their lessons
         const modulesRef = collection(db, "courses", courseId, "modules");
         const qModules = query(modulesRef, orderBy("order"));
         const modulesSnapshot = await getDocs(qModules);
@@ -45,13 +73,22 @@ const CoursePage = () => {
             }));
             return { id: moduleDoc.id, ...moduleDoc.data(), lessons: lessonsList };
         }));
-
         setModules(modulesList);
 
-        // 3. Set the first lesson as the current lesson by default
-        if (modulesList.length > 0 && modulesList[0].lessons.length > 0) {
-            setCurrentLesson(modulesList[0].lessons[0]);
+        // 4. Set the first uncompleted lesson as the current one
+        let firstUncompleted = null;
+        for (const module of modulesList) {
+          for (const lesson of module.lessons) {
+            if (!completedIds.has(lesson.id)) {
+              firstUncompleted = lesson;
+              break;
+            }
+          }
+          if (firstUncompleted) break;
         }
+
+        // If all lessons are completed, show the first one. Otherwise, show the first uncompleted one.
+        setCurrentLesson(firstUncompleted || (modulesList.length > 0 && modulesList[0].lessons.length > 0 ? modulesList[0].lessons[0] : null));
 
       } catch (err) {
         console.error("Error fetching course content:", err);
@@ -62,7 +99,47 @@ const CoursePage = () => {
     };
 
     fetchCourseContent();
-  }, [courseId, user]);
+  }, [courseId, user, userCourseId]);
+
+  const handleCompleteLesson = async () => {
+    if (!user || !userCourseId || !currentLesson) return;
+
+    try {
+        const progressDocRef = doc(db, "users", user.uid, "courses", userCourseId, "completed_lessons", currentLesson.id);
+        await setDoc(progressDocRef, { completedAt: new Date() });
+
+        const newCompleted = new Set(completedLessons).add(currentLesson.id);
+        setCompletedLessons(newCompleted);
+
+        // Auto-advance to the next lesson
+        let nextLesson = null;
+        let foundCurrent = false;
+        for (const module of modules) {
+            for (const lesson of module.lessons) {
+                if (foundCurrent) {
+                    nextLesson = lesson;
+                    break;
+                }
+                if (lesson.id === currentLesson.id) {
+                    foundCurrent = true;
+                }
+            }
+            if (nextLesson) break;
+        }
+        
+        if (nextLesson) {
+            setCurrentLesson(nextLesson);
+        } else {
+            // Last lesson was completed, maybe show a "Course Complete!" message
+            console.log("Course completed!");
+        }
+
+    } catch (err) {
+        console.error("Error saving progress:", err);
+        setError("Could not save your progress. Please try again.");
+    }
+  };
+
 
   if (loading) {
     return <div className="loading-container">Loading Course...</div>;
@@ -74,7 +151,6 @@ const CoursePage = () => {
 
   return (
     <div className="course-player-container">
-        {/* Sidebar */}
         <aside className="course-sidebar">
             <div className="sidebar-header">
                 <h2 className="course-title">{course?.title}</h2>
@@ -89,8 +165,9 @@ const CoursePage = () => {
                                     <li 
                                         key={lesson.id}
                                         onClick={() => setCurrentLesson(lesson)}
-                                        className={`lesson-item ${currentLesson?.id === lesson.id ? 'active' : ''}`}
+                                        className={`lesson-item ${currentLesson?.id === lesson.id ? 'active' : ''} ${completedLessons.has(lesson.id) ? 'completed' : ''}`}
                                     >
+                                        <span className="lesson-status-icon">{completedLessons.has(lesson.id) ? '✓' : '●'}</span>
                                         {lesson.title}
                                     </li>
                                 ))}
@@ -101,26 +178,22 @@ const CoursePage = () => {
             </nav>
         </aside>
 
-        {/* Main Content */}
         <main className="course-main-content">
             {currentLesson ? (
                 <div>
                     <h1 className="lesson-title-main">{currentLesson.title}</h1>
                     <div className="video-player-wrapper">
-                       {/* A real implementation would use a video player like ReactPlayer */}
                        {currentLesson.videoUrl ? (
                             <iframe 
                                 className="video-player"
-                                src={`https://www.youtube.com/embed/${currentLesson.videoUrl}`} // Example for YouTube
+                                src={`https://www.youtube.com/embed/${currentLesson.videoUrl}`}
                                 title={currentLesson.title}
                                 frameBorder="0" 
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                                 allowFullScreen>
                             </iframe>
                        ) : (
-                            <div className="video-placeholder">
-                                No video for this lesson.
-                            </div>
+                            <div className="video-placeholder">No video for this lesson.</div>
                        )}
                     </div>
                     <div className="lesson-description-box">
@@ -129,10 +202,17 @@ const CoursePage = () => {
                             {currentLesson.description || "No description available."}
                         </p>
                     </div>
+                    <div className="lesson-actions">
+                        {!completedLessons.has(currentLesson.id) && (
+                            <button onClick={handleCompleteLesson} className="complete-lesson-btn">
+                                Mark as Complete
+                            </button>
+                        )}
+                    </div>
                 </div>
             ) : (
                 <div className="no-lesson-selected">
-                    <p>Select a lesson to begin.</p>
+                    <p>Select a lesson to begin or congratulations on completing the course!</p>
                 </div>
             )}
         </main>
