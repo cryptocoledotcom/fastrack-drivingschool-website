@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../Firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import './Courses.css';
 
 function Courses() {
@@ -9,21 +9,10 @@ function Courses() {
 
   useEffect(() => {
     const fetchCourses = async () => {
-      const coursesCollection = await getDocs(collection(db, 'courses'));
+      const coursesRef = collection(db, 'courses');
+      const q = query(coursesRef, orderBy('order'));
+      const coursesCollection = await getDocs(q);
       const fetchedCourses = coursesCollection.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-      // Define the desired order of course titles
-      const desiredOrder = [
-        'Online Driving Course',
-        'Behind the Wheel Driving Course',
-        'Online & Behind the Wheel Driving Course'
-      ];
-
-      // Sort the courses based on the desired order
-      fetchedCourses.sort((a, b) => {
-        return desiredOrder.indexOf(a.title) - desiredOrder.indexOf(b.title);
-      });
-
       setCourses(fetchedCourses);
     };
     fetchCourses();

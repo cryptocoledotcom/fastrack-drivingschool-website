@@ -1,16 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../pages/Auth/AuthContext";
 import { db } from "../Firebase";
-import { collection, getDocs, getDoc, query, where, writeBatch, doc } from "firebase/firestore";
-import { useNotification } from "./Notification/NotificationContext";
+import { collection, getDocs, getDoc, query, where, doc } from "firebase/firestore";
 
 const MyCourses = () => {
   const { user } = useAuth();
   const [courses, setCourses] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { showNotification } = useNotification();
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -96,7 +94,7 @@ const MyCourses = () => {
                     <p><strong>Upcoming Lesson:</strong></p>
                     <p>{new Date(behindTheWheelBooking.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC', weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })} at {behindTheWheelBooking.time}</p>
                     <Link
-                      to="/calendar"
+                      to="/schedule-lesson"
                       state={{ bookingIdToReschedule: behindTheWheelBooking.id }}
                       className="btn btn-secondary"
                     >
@@ -104,7 +102,7 @@ const MyCourses = () => {
                     </Link>
                   </div>
                 ) : (
-                  <Link to="/calendar" className="btn btn-primary">Schedule Driving Lessons</Link>
+                  <Link to="/schedule-lesson" className="btn btn-primary">Schedule Driving Lessons</Link>
                 )
               ) : (
                 <Link to={`/course/${course.id}`} className="btn btn-primary">Start Lessons</Link>

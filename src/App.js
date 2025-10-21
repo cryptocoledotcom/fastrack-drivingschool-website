@@ -10,7 +10,7 @@ import LoginForm from './pages/Auth/LoginForm';
 import RegisterForm from './pages/Auth/RegisterForm';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import UserProfile from './pages/UserProfile';
-import CalendarPage from './pages/Calendar';
+import ScheduleLesson from './pages/ScheduleLesson';
 import { AuthProvider } from './pages/Auth/AuthContext';
 import CourseDetail from './pages/CourseDetail';
 import { NotificationProvider } from './components/Notification/NotificationContext';
@@ -37,7 +37,7 @@ function App() {
                 <Route path="/register" element={<RegisterForm />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/user-profile" element={<UserProfile />} />
-                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/schedule-lesson" element={<ScheduleLesson />} />
                 <Route path="/admin" element={<Admin />} />
               </Routes>
             </main>

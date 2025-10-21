@@ -3,13 +3,13 @@ import Calendar from 'react-calendar';
 import { db } from '../Firebase';
 import { doc, getDoc, collection, addDoc, writeBatch } from 'firebase/firestore';
 import 'react-calendar/dist/Calendar.css';
-import './Calendar.css';
+import './ScheduleLesson.css';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './Auth/AuthContext';
 import { useNotification } from '../components/Notification/NotificationContext';
 
-const CalendarPage = () => {
+const ScheduleLesson = () => {
   const [date, setDate] = useState(new Date());
   const [timeSlots, setTimeSlots] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -140,4 +140,4 @@ const CalendarPage = () => {
   );
 };
 
-export default CalendarPage;
+export default ScheduleLesson;

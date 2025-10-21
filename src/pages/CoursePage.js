@@ -54,7 +54,7 @@ const CoursePage = () => {
         <h2>{course?.title}</h2>
         <p>{course?.description}</p>
         {course?.title === 'Behind the Wheel Driving Course' ? (
-          <Link to="/calendar" className="btn btn-primary">Schedule Driving Lessons</Link>
+          <Link to="/schedule-lesson" className="btn btn-primary">Schedule Driving Lessons</Link>
         ) : null}
       </div>
       {course?.title !== 'Behind the Wheel Driving Course' && (
