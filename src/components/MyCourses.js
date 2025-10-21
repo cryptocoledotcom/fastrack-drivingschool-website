@@ -30,14 +30,14 @@ const MyCourses = () => {
                   if (!courseIds.has(bundledCourseRef.id)) {
                     const bundledCourseDoc = await getDoc(bundledCourseRef);
                     if (bundledCourseDoc.exists()) {
-                      coursesData.push({ id: bundledCourseDoc.id, ...bundledCourseDoc.data() });
+                      coursesData.push({ ...bundledCourseDoc.data(), id: bundledCourseDoc.id });
                       courseIds.add(bundledCourseRef.id);
                     }
                   }
                 }
               } else {
                 if (!courseIds.has(courseId)) {
-                  coursesData.push({ id: fetchedCourseDoc.id, ...courseData });
+                  coursesData.push({ ...courseData, id: fetchedCourseDoc.id });
                   courseIds.add(courseId);
                 }
               }
@@ -105,7 +105,7 @@ const MyCourses = () => {
                   <Link to="/schedule-lesson" className="btn btn-primary">Schedule Driving Lessons</Link>
                 )
               ) : (
-                <Link to={`/course/${course.id}`} className="btn btn-primary">Start Lessons</Link>
+                <Link to={`/course-player/${course.id}`} className="btn btn-primary">Start Lessons</Link>
               )}
             </li>
           ))}

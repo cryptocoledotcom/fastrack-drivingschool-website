@@ -3,14 +3,14 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "../pages/Auth/AuthContext";
 
 const ProtectedRoute = ({ children }) => {
-  const { currentUser, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     // You can optionally render a loading spinner here
     return null;
   }
 
-  if (!currentUser) {
+  if (!user) {
     // If the user is not logged in, redirect them to the login page
     return <Navigate to="/login" />;
   }

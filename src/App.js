@@ -7,12 +7,14 @@ import Courses from './pages/Courses';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import LoginForm from './pages/Auth/LoginForm';
-import RegisterForm from './pages/Auth/RegisterForm';
+import SignUp from './pages/Auth/SignUp';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import UserProfile from './pages/UserProfile';
 import ScheduleLesson from './pages/ScheduleLesson';
-import { AuthProvider } from './pages/Auth/AuthContext';
 import CourseDetail from './pages/CourseDetail';
+import CoursePage from './pages/CoursePage';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './pages/Auth/AuthContext';
 import { NotificationProvider } from './components/Notification/NotificationContext';
 import './App.css';
 import './components/Button/Button.css';
@@ -31,10 +33,11 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/courses" element={<Courses />} />
                 <Route path="/courses/:courseId" element={<CourseDetail />} />
+                <Route path="/course-player/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<LoginForm />} />
-                <Route path="/register" element={<RegisterForm />} />
+                <Route path="/sign-up" element={<SignUp />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/user-profile" element={<UserProfile />} />
                 <Route path="/schedule-lesson" element={<ScheduleLesson />} />
