@@ -11,7 +11,7 @@ import SignUp from './pages/Auth/SignUp';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 import UserProfile from './pages/UserProfile';
 import ScheduleLesson from './pages/ScheduleLesson';
-import CourseDetail from './pages/CourseDetail';
+import CourseDetails from './pages/CourseDetails';
 import CoursePage from './pages/CoursePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './pages/Auth/AuthContext';
@@ -32,7 +32,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/courses" element={<Courses />} />
-                <Route path="/courses/:courseId" element={<CourseDetail />} />
+                <Route path="/courses/:courseId" element={<CourseDetails />} />
                 <Route path="/course-player/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />

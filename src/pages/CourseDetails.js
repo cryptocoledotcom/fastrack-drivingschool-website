@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../Firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import './CourseDetail.css';
+import './CourseDetails.css';
 
-const CourseDetail = () => {
+const CourseDetails = () => {
   const { courseId } = useParams();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -138,4 +138,4 @@ const OnlineAndBehindTheWheelCourseDescription = () => (
   </div>
 );
 
-export default CourseDetail;
+export default CourseDetails;
