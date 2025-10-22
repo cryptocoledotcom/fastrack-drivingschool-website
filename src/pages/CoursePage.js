@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../Firebase";
-import { collection, getDocs, doc, getDoc, query, orderBy, where, setDoc, limit } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, orderBy, where, setDoc, limit, onSnapshot } from "firebase/firestore";
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePage.css";
 
@@ -37,7 +37,7 @@ const CoursePage = () => {
     findUserCourse();
   }, [user, courseId]);
 
-  // Fetch all course content and user progress
+  // Fetch all course content
   useEffect(() => {
     if (!user || !userCourseId) return;
 
@@ -46,19 +46,13 @@ const CoursePage = () => {
       setError('');
       
       try {
-        // 1. Fetch user's completed lessons
-        const progressRef = collection(db, "users", user.uid, "courses", userCourseId, "completed_lessons");
-        const progressSnapshot = await getDocs(progressRef);
-        const completedIds = new Set(progressSnapshot.docs.map(doc => doc.id));
-        setCompletedLessons(completedIds);
-
-        // 2. Fetch the main course document
+        // 1. Fetch the main course document
         const courseRef = doc(db, "courses", courseId);
         const courseSnap = await getDoc(courseRef);
         if (!courseSnap.exists()) throw new Error("Course not found.");
         setCourse({ id: courseSnap.id, ...courseSnap.data() });
 
-        // 3. Fetch modules and their lessons
+        // 2. Fetch modules and their lessons
         const modulesRef = collection(db, "courses", courseId, "modules");
         const qModules = query(modulesRef, orderBy("order"));
         const modulesSnapshot = await getDocs(qModules);
@@ -75,21 +69,6 @@ const CoursePage = () => {
         }));
         setModules(modulesList);
 
-        // 4. Set the first uncompleted lesson as the current one
-        let firstUncompleted = null;
-        for (const module of modulesList) {
-          for (const lesson of module.lessons) {
-            if (!completedIds.has(lesson.id)) {
-              firstUncompleted = lesson;
-              break;
-            }
-          }
-          if (firstUncompleted) break;
-        }
-
-        // If all lessons are completed, show the first one. Otherwise, show the first uncompleted one.
-        setCurrentLesson(firstUncompleted || (modulesList.length > 0 && modulesList[0].lessons.length > 0 ? modulesList[0].lessons[0] : null));
-
       } catch (err) {
         console.error("Error fetching course content:", err);
         setError("Failed to load course content. Please check the course ID and your Firestore structure.");
@@ -100,6 +79,39 @@ const CoursePage = () => {
 
     fetchCourseContent();
   }, [courseId, user, userCourseId]);
+
+  // Listen for completed lessons changes
+  useEffect(() => {
+    if (!user || !userCourseId) return;
+
+    const progressRef = collection(db, "users", user.uid, "courses", userCourseId, "completed_lessons");
+    const unsubscribe = onSnapshot(progressRef, (snapshot) => {
+      const completedIds = new Set(snapshot.docs.map(doc => doc.id));
+      setCompletedLessons(completedIds);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, userCourseId]);
+
+  // Set the current lesson
+  useEffect(() => {
+    if (modules.length === 0) return;
+
+    let firstUncompleted = null;
+    for (const module of modules) {
+      for (const lesson of module.lessons) {
+        if (!completedLessons.has(lesson.id)) {
+          firstUncompleted = lesson;
+          break;
+        }
+      }
+      if (firstUncompleted) break;
+    }
+
+    setCurrentLesson(firstUncompleted || (modules.length > 0 && modules[0].lessons.length > 0 ? modules[0].lessons[0] : null));
+  }, [modules, completedLessons]);
 
   const handleCompleteLesson = async () => {
     if (!user || !userCourseId || !currentLesson) return;
