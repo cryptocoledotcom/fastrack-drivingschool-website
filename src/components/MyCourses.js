@@ -89,7 +89,6 @@ const MyCourses = () => {
           {courses.map(course => (
             <li key={course.id}>
               <h4>{course.title}</h4>
-              <p>{course.description}</p>
               {course.id === 'fastrack-behind-the-wheel' ? (
                 behindTheWheelBooking ? (
                   <div>
@@ -104,7 +103,7 @@ const MyCourses = () => {
                     </Link>
                   </div>
                 ) : (
-                  <Link to="/schedule-lesson" className="btn btn-primary">Schedule Driving Lessons</Link>
+                  <Link to="/schedule-lesson" className="btn btn-primary">Schedule Lesson</Link>
                 )
               ) : (
                 <Link to={`/course-player/${course.id}`} className="btn btn-primary">Start Lessons</Link>

@@ -15,7 +15,9 @@ const UserProfile = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
-    name: "",
+    firstName: "",
+    middleName: "",
+    lastName: "",
     birthday: "",
     houseNumber: "",
     street: "",
@@ -23,7 +25,6 @@ const UserProfile = () => {
     state: "",
     zip: "",
     phone: "",
-    bio: ""
   });
   const [profileError, setProfileError] = useState("");
 
@@ -38,7 +39,9 @@ const UserProfile = () => {
             setProfile(data);
             const address = data.address || {};
             setForm({
-              name: data.name || "",
+              firstName: data.firstName || "",
+              middleName: data.middleName || "",
+              lastName: data.lastName || "",
               birthday: data.birthday || "",
               houseNumber: address.houseNumber || "",
               street: address.street || "",
@@ -46,7 +49,6 @@ const UserProfile = () => {
               state: address.state || "",
               zip: address.zip || "",
               phone: data.phone || "",
-              bio: data.bio || ""
             });
           } else {
             setProfileError("Profile not found. Please complete your registration.");
@@ -77,7 +79,9 @@ const UserProfile = () => {
     setEditing(false);
     const address = profile?.address || {};
     setForm({
-      name: profile?.name || "",
+      firstName: profile?.firstName || "",
+      middleName: profile?.middleName || "",
+      lastName: profile?.lastName || "",
       birthday: profile?.birthday || "",
       houseNumber: address.houseNumber || "",
       street: address.street || "",
@@ -85,7 +89,6 @@ const UserProfile = () => {
       state: address.state || "",
       zip: address.zip || "",
       phone: profile?.phone || "",
-      bio: profile?.bio || ""
     });
   };
   const handleChange = (e) => {
@@ -95,7 +98,9 @@ const UserProfile = () => {
     e.preventDefault();
     try {
       await setDoc(doc(db, "users", user.uid), {
-        name: form.name,
+        firstName: form.firstName,
+        middleName: form.middleName,
+        lastName: form.lastName,
         birthday: form.birthday,
         address: {
           houseNumber: form.houseNumber,
@@ -106,7 +111,6 @@ const UserProfile = () => {
         },
         phone: form.phone,
         email: user.email,
-        bio: form.bio
       }, { merge: true });
       // Fetch updated profile from Firestore
       const updatedDoc = await getDoc(doc(db, "users", user.uid));
@@ -131,16 +135,20 @@ const UserProfile = () => {
         {editing ? (
           <form className="auth-form" onSubmit={handleSave} style={{ marginBottom: "1rem" }}>
             <div style={{ marginBottom: "1rem" }}>
-              <label htmlFor="name" style={{ display: "block", marginBottom: "0.25rem" }}>Name:</label>
-              <input type="text" id="name" name="name" value={form.name} onChange={handleChange} required autoComplete="name" />
+              <label htmlFor="firstName" style={{ display: "block", marginBottom: "0.25rem" }}>First Name:</label>
+              <input type="text" id="firstName" name="firstName" value={form.firstName} onChange={handleChange} required autoComplete="given-name" />
+            </div>
+            <div style={{ marginBottom: "1rem" }}>
+              <label htmlFor="middleName" style={{ display: "block", marginBottom: "0.25rem" }}>Middle Name:</label>
+              <input type="text" id="middleName" name="middleName" value={form.middleName} onChange={handleChange} autoComplete="additional-name" />
+            </div>
+            <div style={{ marginBottom: "1rem" }}>
+              <label htmlFor="lastName" style={{ display: "block", marginBottom: "0.25rem" }}>Last Name:</label>
+              <input type="text" id="lastName" name="lastName" value={form.lastName} onChange={handleChange} required autoComplete="family-name" />
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <label htmlFor="birthday" style={{ display: "block", marginBottom: "0.25rem" }}>Birthday:</label>
               <input type="date" id="birthday" name="birthday" value={form.birthday} onChange={handleChange} required autoComplete="bday" />
-            </div>
-            <div style={{ marginBottom: "1rem" }}>
-              <label htmlFor="bio" style={{ display: "block", marginBottom: "0.25rem" }}>Bio:</label>
-              <textarea id="bio" name="bio" value={form.bio} onChange={handleChange} autoComplete="off" />
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <label style={{ display: "block", marginBottom: "0.25rem" }}>Address:</label>
@@ -151,11 +159,11 @@ const UserProfile = () => {
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <label htmlFor="town" className="sr-only">Town</label>
-              <input type="text" id="town" name="town" placeholder="Town" value={form.town} onChange={handleChange} required style={{ width: "48%", marginRight: "4%" }} autoComplete="address-level2" />
+              <input type="text" id="town" name="town" placeholder="Town" value={form.town} onChange={handleChange} required style={{ width: "40%", marginRight: "4%" }} autoComplete="address-level2" />
               <label htmlFor="state" className="sr-only">State</label>
               <input type="text" id="state" name="state" placeholder="State" value={form.state} onChange={handleChange} required style={{ width: "20%", marginRight: "4%" }} autoComplete="address-level1" />
               <label htmlFor="zip" className="sr-only">Zip</label>
-              <input type="text" id="zip" name="zip" placeholder="Zip" value={form.zip} onChange={handleChange} required style={{ width: "20%" }} autoComplete="postal-code" />
+              <input type="text" id="zip" name="zip" placeholder="Zip" value={form.zip} onChange={handleChange} required style={{ width: "30%" }} autoComplete="postal-code" />
             </div>
             <div style={{ marginBottom: "1rem" }}>
               <label htmlFor="phone" style={{ display: "block", marginBottom: "0.25rem" }}>Phone:</label>
@@ -166,10 +174,9 @@ const UserProfile = () => {
           </form>
         ) : (
           <>
-            <p><strong>Name:</strong> {profile?.name || "-"}</p>
+            <p><strong>Name:</strong> {profile?.firstName || ""} {profile?.middleName || ""} {profile?.lastName || ""}</p>
             <p><strong>Birthday:</strong> {profile?.birthday || "-"}</p>
             <p><strong>Email:</strong> {user.email}</p>
-            <p><strong>Bio:</strong> {profile?.bio || "-"}</p>
             <p><strong>Address:</strong> {
               profile?.address ? (
                 <>
@@ -184,7 +191,9 @@ const UserProfile = () => {
         )}
         <button onClick={logout} className="btn btn-danger">Logout</button>
       </div>
-      <MyCourses />
+      <div className="my-courses-container">
+        <MyCourses />
+      </div>
     </div>
   );
 };

@@ -2,7 +2,18 @@
   gap: 2rem;
 }
 
-.user-profile-section,
+.user-profile-section {
+  background-color: var(--dark-gray);
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: var(--white);
+}
+
+.my-courses-container {
+  margin-top: 2rem;
+}
+
 .my-courses-section {
   background-color: var(--light-gray-2);
   padding: 1.5rem;
@@ -16,6 +27,12 @@
   border-bottom: 1px solid var(--light-gray-4);
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
+}
+
+.my-courses-section ul li h4 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
 }
 
 .btn-secondary {
@@ -38,5 +55,19 @@
 @media (max-width: 768px) {
   .profile-container {
     gap: 1rem;
+  }
+
+  .my-courses-section .btn {
+    width: 100%;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+  }
+
+  .my-courses-section .btn:last-child {
+    margin-bottom: 0;
+  }
+
+  .my-courses-section .btn-primary {
+    font-size: 1rem;
   }
 }
