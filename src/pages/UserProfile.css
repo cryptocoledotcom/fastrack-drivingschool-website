@@ -71,3 +71,23 @@
     font-size: 1rem;
   }
 }
+
+/* Styles for the edit form within the user profile */
+.user-profile-section .auth-form {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  max-width: 100%;
+}
+
+.user-profile-section .auth-form label {
+  color: var(--white);
+}
+
+.user-profile-section .auth-form input {
+  background-color: var(--light-gray-2);
+  color: var(--dark-gray);
+  border: 1px solid var(--light-gray-4);
+}
