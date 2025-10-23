@@ -298,8 +298,8 @@ const lessonsData = {
     },
 
     // Module: unit-4
-    "lesson-4-1": { "title": "A. Pavement/Roadway Markings", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
-    "lesson-4-2": { "title": "B. Traffic Signs", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
+    "lesson-4-1": { "title": "A. Pavement/Roadway Markings", "content": "...", "videoUrl": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
+    "lesson-4-2": { "title": "B. Traffic Signs", "content": "...", "videoUrl": "Ffd9SgSWbbE", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-3": { "title": "C. Traffic Signals", "content": "Learn to interpret traffic lights, including solid, flashing, and arrow signals.", "videoUrl": "j9c4pTf4w9c", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-3": { "title": "C. Traffic Signals", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-4": { "title": "D. Right-of-Way", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },

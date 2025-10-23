@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import YouTube from 'react-youtube';
 import { db } from "../Firebase";
@@ -54,6 +54,7 @@ const CoursePlayer = () => {
   const [error, setError] = useState("");
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [isVideoWatched, setIsVideoWatched] = useState(false);
+  const intervalRef = useRef(null);
 
   // Find the specific "courses" document for this user and course
   useEffect(() => {
@@ -180,6 +181,13 @@ const CoursePlayer = () => {
         }
     }
 
+    // Cleanup interval on lesson change
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+
   }, [modules, lessons, completedLessons]);
 
   const handleCompleteLesson = async () => {
@@ -216,27 +224,31 @@ const CoursePlayer = () => {
   };
 
   const onPlayerStateChange = (event) => {
-    // event.data can be:
-    // -1 (unstarted)
-    //  0 (ended)
-    //  1 (playing)
-    //  2 (paused)
-    //  3 (buffering)
-    //  5 (video cued)
-    if (event.data === 0) { // 0 is 'ENDED'
-        setIsVideoWatched(true);
+    const player = event.target;
+
+    // Clear any existing interval when state changes
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
     }
 
-    // Alternative: Check if video is within 3 seconds of the end
-    if (event.data === 1) { // 1 is 'PLAYING'
-        const player = event.target;
+    if (event.data === window.YT.PlayerState.PLAYING) {
+      // If video is playing, start checking the time
+      intervalRef.current = setInterval(() => {
         const duration = player.getDuration();
-        const checkInterval = setInterval(() => {
-            if (player.getPlayerState() !== 1 || duration - player.getCurrentTime() <= 3) {
-                setIsVideoWatched(true);
-                clearInterval(checkInterval);
-            }
-        }, 1000);
+        const currentTime = player.getCurrentTime();
+        if (duration > 0 && duration - currentTime <= 3) {
+          setIsVideoWatched(true);
+          clearInterval(intervalRef.current);
+        }
+      }, 1000);
+    }
+
+    if (event.data === window.YT.PlayerState.ENDED) {
+      // If video ends, mark as watched and clear interval
+      setIsVideoWatched(true);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     }
   };
 
@@ -291,7 +303,10 @@ const CoursePlayer = () => {
                 <YouTube
                   videoId={currentLesson.videoUrl}
                   className="video-player" // Ensure this class makes it responsive
-                  opts={{ width: '100%', height: '100%' }}
+                  opts={{ 
+                    width: '100%', 
+                    height: '100%',
+                  }}
                   onStateChange={onPlayerStateChange}
                   title={currentLesson.title}
                 />
