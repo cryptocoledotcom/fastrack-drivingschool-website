@@ -50,15 +50,39 @@
 
 .sidebar li.completed {
   color: var(--light-gray-4);
+}
+
+.sidebar li.completed .lesson-title {
   text-decoration: line-through;
 }
 
 .sidebar li.completed .lesson-status-icon {
-    color: #28a745;
+  /* The checkmark will get its color from the rule below */
 }
 
 .lesson-status-icon {
   font-size: 0.8rem;
+  position: relative;
+  width: 1.3em; /* Give it a little space */
+  height: 1.3em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lesson-status-icon .icon-box,
+.lesson-status-icon .icon-check {
+  position: absolute;
+}
+
+.sidebar li.completed .icon-box {
+  color: var(--white); /* Ensure the box stays visible when completed */
+}
+
+.lesson-status-icon .icon-check {
+  display: none; /* Hide the checkmark by default */
+  font-weight: bold;
+  font-size: 1.1em; /* Make it slightly larger than the box */
 }
 
 .main-content {
@@ -66,6 +90,11 @@
   padding: 2rem;
   overflow-y: auto;
   background-color: var(--light-gray-1);
+}
+
+.sidebar li.completed .lesson-status-icon .icon-check {
+  display: inline; /* Show the checkmark when the lesson is completed */
+  color: #28a745; /* Make the checkmark green */
 }
 
 .main-content h2 {

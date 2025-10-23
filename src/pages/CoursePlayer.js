@@ -279,8 +279,11 @@ const CoursePlayer = () => {
                                 className={`${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
                                 onClick={() => setCurrentLesson(lesson)}
                             >
-                                <span className="lesson-status-icon">{isCompleted ? "✓" : "●"}</span>
-                                {lesson.title}
+                                <span className="lesson-status-icon">
+                                    <span className="icon-box">☐</span>
+                                    <span className="icon-check">✓</span>
+                                </span>
+                                <span className="lesson-title">{lesson.title}</span>
                             </li>
                         );
                     })}
