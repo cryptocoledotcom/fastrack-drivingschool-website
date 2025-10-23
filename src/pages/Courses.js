@@ -12,7 +12,7 @@ function Courses() {
       const coursesRef = collection(db, 'courses');
       const q = query(coursesRef, orderBy('order'));
       const coursesCollection = await getDocs(q);
-      const fetchedCourses = coursesCollection.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const fetchedCourses = coursesCollection.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setCourses(fetchedCourses);
     };
     fetchCourses();

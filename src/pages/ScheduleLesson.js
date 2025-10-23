@@ -60,7 +60,7 @@ const ScheduleLesson = () => {
 
     const newBookingData = {
       userId: user.uid,
-      courseId: 'behind-the-wheel',
+      courseId: 'fastrack-behind-the-wheel',
       date: new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0],
       time: selectedSlot,
     };

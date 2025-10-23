@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../Firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import './CourseDetails.css';
 
 const CourseDetails = () => {
@@ -12,12 +12,11 @@ const CourseDetails = () => {
   useEffect(() => {
     const fetchCourse = async () => {
       setLoading(true);
-      const q = query(collection(db, "courses"), where("id", "==", parseInt(courseId)));
-      const querySnapshot = await getDocs(q);
+      const docRef = doc(db, "courses", courseId);
+      const docSnap = await getDoc(docRef);
 
-      if (!querySnapshot.empty) {
-        const courseDoc = querySnapshot.docs[0];
-        setCourse({ id: courseDoc.id, ...courseDoc.data() });
+      if (docSnap.exists()) {
+        setCourse({ ...docSnap.data(), id: docSnap.id });
       } else {
         console.error('No such course found!');
       }
@@ -42,11 +41,11 @@ const CourseDetails = () => {
         <p className="course-detail-price">${course.price}</p>
       </div>
       <div className="course-detail-body">
-        {course.title === 'Online Driving Course' ? (
+        {course.id === 'fastrack-online' ? (
           <OnlineCourseDescription />
-        ) : course.title === 'Behind the Wheel Driving Course' ? (
+        ) : course.id === 'fastrack-behind-the-wheel' ? (
           <BehindTheWheelCourseDescription />
-        ) : course.title === 'Online & Behind the Wheel Driving Course' ? (
+        ) : course.id === 'fastrack-complete' ? (
           <OnlineAndBehindTheWheelCourseDescription />
         ) : (
           <p className="course-detail-description">{course.description}</p>

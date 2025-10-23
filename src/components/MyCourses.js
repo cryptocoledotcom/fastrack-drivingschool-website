@@ -26,12 +26,14 @@ const MyCourses = () => {
             if (fetchedCourseDoc.exists()) {
               const courseData = fetchedCourseDoc.data();
               if (courseData.bundledCourses) {
-                for (const bundledCourseRef of courseData.bundledCourses) {
-                  if (!courseIds.has(bundledCourseRef.id)) {
+                for (const bundledCoursePath of courseData.bundledCourses) {
+                  const bundledCourseId = bundledCoursePath.split('/').pop().trim();
+                  if (!courseIds.has(bundledCourseId)) {
+                    const bundledCourseRef = doc(db, 'courses', bundledCourseId);
                     const bundledCourseDoc = await getDoc(bundledCourseRef);
                     if (bundledCourseDoc.exists()) {
                       coursesData.push({ ...bundledCourseDoc.data(), id: bundledCourseDoc.id });
-                      courseIds.add(bundledCourseRef.id);
+                      courseIds.add(bundledCourseId);
                     }
                   }
                 }
@@ -77,7 +79,7 @@ const MyCourses = () => {
     return <div>Loading...</div>;
   }
 
-  const behindTheWheelBooking = bookings.find(booking => booking.courseId === 'behind-the-wheel');
+  const behindTheWheelBooking = bookings.find(booking => booking.courseId === 'fastrack-behind-the-wheel');
 
   return (
     <div className="my-courses-section">
@@ -88,7 +90,7 @@ const MyCourses = () => {
             <li key={course.id}>
               <h4>{course.title}</h4>
               <p>{course.description}</p>
-              {course.title === 'Behind the Wheel Driving Course' ? (
+              {course.id === 'fastrack-behind-the-wheel' ? (
                 behindTheWheelBooking ? (
                   <div>
                     <p><strong>Upcoming Lesson:</strong></p>
