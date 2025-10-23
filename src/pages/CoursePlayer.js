@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import YouTube from 'react-youtube';
 import { db } from "../Firebase";
 import {
   collection,
@@ -52,6 +53,7 @@ const CoursePlayer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [courseCompleted, setCourseCompleted] = useState(false);
+  const [isVideoWatched, setIsVideoWatched] = useState(false);
 
   // Find the specific "courses" document for this user and course
   useEffect(() => {
@@ -163,9 +165,21 @@ const CoursePlayer = () => {
     const firstUncompletedId = findFirstUncompletedLesson(modules, completedLessons);
     
     setCourseCompleted(false); // Ensure it's false if course is not complete
-    const firstLessonId = modules[0]?.lessonOrder[0];
+    const nextLessonId = firstUncompletedId || modules[0]?.lessonOrder[0];
+    const nextLesson = lessons[nextLessonId] || null;
 
-    setCurrentLesson(lessons[firstUncompletedId] || lessons[firstLessonId] || null);
+    setCurrentLesson(nextLesson);
+
+    // Reset video watched status when lesson changes
+    if (nextLesson) {
+        // If the new lesson has no video, it's considered "watched" immediately.
+        if (!nextLesson.videoUrl) {
+            setIsVideoWatched(true);
+        } else {
+            setIsVideoWatched(false);
+        }
+    }
+
   }, [modules, lessons, completedLessons]);
 
   const handleCompleteLesson = async () => {
@@ -198,6 +212,31 @@ const CoursePlayer = () => {
     } catch (err) {
       console.error("Error saving progress:", err);
       setError("Could not save your progress. Please try again.");
+    }
+  };
+
+  const onPlayerStateChange = (event) => {
+    // event.data can be:
+    // -1 (unstarted)
+    //  0 (ended)
+    //  1 (playing)
+    //  2 (paused)
+    //  3 (buffering)
+    //  5 (video cued)
+    if (event.data === 0) { // 0 is 'ENDED'
+        setIsVideoWatched(true);
+    }
+
+    // Alternative: Check if video is within 3 seconds of the end
+    if (event.data === 1) { // 1 is 'PLAYING'
+        const player = event.target;
+        const duration = player.getDuration();
+        const checkInterval = setInterval(() => {
+            if (player.getPlayerState() !== 1 || duration - player.getCurrentTime() <= 3) {
+                setIsVideoWatched(true);
+                clearInterval(checkInterval);
+            }
+        }, 1000);
     }
   };
 
@@ -249,13 +288,13 @@ const CoursePlayer = () => {
             <h2>{currentLesson.title}</h2>
             <div className="video-player-wrapper">
               {currentLesson.videoUrl ? (
-                <iframe
-                  src={`https://www.youtube.com/embed/${currentLesson.videoUrl}`}
+                <YouTube
+                  videoId={currentLesson.videoUrl}
+                  className="video-player" // Ensure this class makes it responsive
+                  opts={{ width: '100%', height: '100%' }}
+                  onStateChange={onPlayerStateChange}
                   title={currentLesson.title}
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
+                />
               ) : (
                 <div className="video-placeholder">
                   No video for this lesson.
@@ -269,11 +308,13 @@ const CoursePlayer = () => {
             </div>
             <div className="lesson-actions">
               {!completedLessons.has(currentLesson.id) && (
-                <button
-                  onClick={handleCompleteLesson}
-                  className="btn btn-primary"
+                <button 
+                    onClick={handleCompleteLesson} 
+                    className="btn btn-primary" 
+                    disabled={!isVideoWatched}
+                    title={!isVideoWatched ? "You must finish the lesson before you can continue." : ""}
                 >
-                  Mark as Complete
+                  {isVideoWatched ? 'Mark as Complete' : 'Finish the video to continue'}
                 </button>
               )}
             </div>

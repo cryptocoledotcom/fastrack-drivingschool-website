@@ -215,6 +215,7 @@ const lessonsData = {
     "lesson-intro-1": {
         "title": "Introduction and Program Administration",
         "content": "Welcome to the Fastrack Online Driving Course! This initial lesson will guide you through the program's structure, what to expect, and how to successfully complete your driver education.",
+        "videoUrl": "boXMHM8LJD8",
         "moduleId": "module-intro",
         "courseId": "fastrack-online"
     },
@@ -223,6 +224,7 @@ const lessonsData = {
     "lesson-1-1": {
         "title": "A. The Highway Transportation System",
         "content": "Learn about the complex system of roadways, vehicles, and people that make up our highway transportation system.",
+        "videoUrl": "pB-2T7y3xI4",
         "moduleId": "module-1",
         "courseId": "fastrack-online"
     },
@@ -249,6 +251,7 @@ const lessonsData = {
     "lesson-2-1": {
         "title": "A. Safety Systems",
         "content": "An overview of the active and passive safety systems in modern vehicles designed to protect you and your passengers.",
+        "videoUrl": "K3c2AbI6v7E",
         "moduleId": "module-2",
         "courseId": "fastrack-online"
     },
@@ -282,12 +285,14 @@ const lessonsData = {
     "lesson-3-11": {
         "title": "K. Parking",
         "content": "This lesson covers all types of parking: angled, perpendicular, parallel...",
+        "videoUrl": "l4LhLNB8Q2Q",
         "moduleId": "module-3",
         "courseId": "fastrack-online"
     },
     "lesson-3-12": {
         "title": "L. Securing and Leaving the Vehicle",
         "content": "The final steps to ensure your vehicle is safe and secure after you've parked.",
+        "videoUrl": "T5p-wQYgI9Y",
         "moduleId": "module-3",
         "courseId": "fastrack-online"
     },
@@ -295,6 +300,7 @@ const lessonsData = {
     // Module: unit-4
     "lesson-4-1": { "title": "A. Pavement/Roadway Markings", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-2": { "title": "B. Traffic Signs", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
+    "lesson-4-3": { "title": "C. Traffic Signals", "content": "Learn to interpret traffic lights, including solid, flashing, and arrow signals.", "videoUrl": "j9c4pTf4w9c", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-3": { "title": "C. Traffic Signals", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-4": { "title": "D. Right-of-Way", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-5": { "title": "E. Speed Limits", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
