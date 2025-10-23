@@ -56,10 +56,6 @@
   text-decoration: line-through;
 }
 
-.sidebar li.completed .lesson-status-icon {
-  /* The checkmark will get its color from the rule below */
-}
-
 .lesson-status-icon {
   font-size: 0.8rem;
   position: relative;
