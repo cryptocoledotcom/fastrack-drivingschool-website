@@ -149,6 +149,16 @@
   border-color: #6c757d;
 }
 
+.lesson-actions .btn-success {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.lesson-actions .btn-success:hover {
+  background-color: #218838; /* A darker green */
+  border-color: #1e7e34;
+}
+
 .no-lesson-selected, .loading-container, .error-container {
   display: flex;
   flex-direction: column;

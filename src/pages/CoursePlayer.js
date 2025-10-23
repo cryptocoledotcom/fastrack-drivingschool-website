@@ -16,20 +16,6 @@ import {
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
 
-const findNextLesson = (modules, currentLessonId) => {
-  for (const module of modules) {
-    const lessonIndex = module.lessonOrder.indexOf(currentLessonId);
-    if (lessonIndex !== -1) {
-      // If it's not the last lesson in the module, return the next one
-      if (lessonIndex < module.lessonOrder.length - 1) {
-        return module.lessonOrder[lessonIndex + 1];
-      }
-      // If it is the last lesson, the outer loop will find the first lesson of the next module
-    }
-  }
-  return null;
-};
-
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
     for (const lessonId of module.lessonOrder) {
@@ -205,18 +191,8 @@ const CoursePlayer = () => {
       );
       await setDoc(progressDocRef, { completedAt: new Date() });
 
-      const newCompleted = new Set(completedLessons).add(currentLesson.id);
-      setCompletedLessons(newCompleted);
-
-      // Auto-advance to the next lesson
-      const nextLessonId = findNextLesson(modules, currentLesson.id);
-
-      if (nextLessonId && lessons[nextLessonId]) {
-        setCurrentLesson(lessons[nextLessonId]);
-      } else {
-        setCourseCompleted(true);
-        setCurrentLesson(null);
-      }
+      // The onSnapshot listener will automatically update the completedLessons state,
+      // so we don't need to set it manually here.
     } catch (err) {
       console.error("Error saving progress:", err);
       setError("Could not save your progress. Please try again.");
@@ -333,7 +309,7 @@ const CoursePlayer = () => {
                     title={!isVideoWatched ? "You must finish the lesson before you can continue." : ""}
                 >
                   {isVideoWatched ? 'Mark as Complete' : 'Finish the video to continue'}
-                </button>
+                </button> 
               )}
             </div>
           </div>
