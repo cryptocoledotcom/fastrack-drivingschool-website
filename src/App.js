@@ -12,7 +12,7 @@ import ForgotPassword from './pages/Auth/ForgotPassword';
 import UserProfile from './pages/UserProfile';
 import ScheduleLesson from './pages/ScheduleLesson';
 import CourseDetails from './pages/CourseDetails';
-import CoursePage from './pages/CoursePage';
+import CoursePlayer from './pages/CoursePlayer';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './pages/Auth/AuthContext';
 import { NotificationProvider } from './components/Notification/NotificationContext';
@@ -33,7 +33,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/courses" element={<Courses />} />
                 <Route path="/courses/:courseId" element={<CourseDetails />} />
-                <Route path="/course-player/:courseId" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
+                <Route path="/course-player/:courseId" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<LoginForm />} />
