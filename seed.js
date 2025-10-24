@@ -176,7 +176,8 @@ const modulesData = {
             "lesson-9-4",
             "lesson-9-5",
             "lesson-9-6",
-            "lesson-9-7"
+            "lesson-9-7",
+            "lesson-9-8",
         ]
     },
     "module-10": {
@@ -187,14 +188,9 @@ const modulesData = {
             "lesson-10-1",
             "lesson-10-2",
             "lesson-10-3",
-            "lesson-10-4"
+            "lesson-10-4",
+            "lesson-10-5",
         ]
-    },
-    "module-updated-tech": {
-        "title": "Updated Vehicle Technology",
-        "durationMinutes": 45,
-        "courseId": "fastrack-online",
-        "lessonOrder": ["lesson-updated-tech"]
     },
     "module-review-6-10": {
         "title": "Review Modules 6 - 10",
@@ -301,7 +297,6 @@ const lessonsData = {
     "lesson-4-1": { "title": "Pavement/Roadway Markings", "content": "...", "videoUrl": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-2": { "title": "Traffic Signs", "content": "...", "videoUrl": "Ffd9SgSWbbE", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-3": { "title": "Traffic Signals", "content": "Learn to interpret traffic lights, including solid, flashing, and arrow signals.", "videoUrl": "j9c4pTf4w9c", "moduleId": "module-4", "courseId": "fastrack-online" },
-    "lesson-4-3": { "title": "Traffic Signals", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-4": { "title": "Right-of-Way", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-5": { "title": "Speed Limits", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-6": { "title": "Following and Stopping Distances", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
@@ -351,29 +346,23 @@ const lessonsData = {
 
     // Module: module-9
     "lesson-9-1": { "title": "Your Senses and Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
-    "lesson-9-2": { "title": "Emotions", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-2": { "title": "Emotions and Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
     "lesson-9-3": { "title": "Fatigue", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
-    "lesson-9-4": { "title": "Illness and Injury", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
-    "lesson-9-5": { "title": "Carbon Monoxide", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
-    "lesson-9-6": { "title": "Alcohol and Other Drugs", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
-    "lesson-9-7": { "title": "Distracted Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-4": { "title": "Short-Term Illness or Injury", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-5": { "title": "Permanent Disabilities", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-6": { "title": "Carbon Monoxide", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-7": { "title": "Alcohol and Other Drugs", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-8": { "title": "Distracted Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
 
     // Module: module-10
     "lesson-10-1": { "title": "Buying a Vehicle", "content": "...", "moduleId": "module-10", "courseId": "fastrack-online" },
     "lesson-10-2": { "title": "Insuring a Vehicle", "content": "...", "moduleId": "module-10", "courseId": "fastrack-online" },
     "lesson-10-3": { "title": "Maintaining a Vehicle", "content": "...", "moduleId": "module-10", "courseId": "fastrack-online" },
     "lesson-10-4": { "title": "Trip Planning", "content": "...", "moduleId": "module-10", "courseId": "fastrack-online" },
-
-    // Module: updated-tech
-    "lesson-updated-tech": {
-        "title": "Updated Vehicle Technology",
-        "content": "An overview of the latest advancements in vehicle technology, including ADAS (Advanced Driver-Assistance Systems) and infotainment.",
-        "moduleId": "module-updated-tech",
-        "courseId": "fastrack-online"
-    },
+    "lesson-10-5": { "title": "Updated Vehicle Technology", "content": "...", "moduleId": "module-10", "courseId": "fastrack-online" }
 
     // Module: review-6-10
-    "lesson-review-6-10": {
+    , "lesson-review-6-10": {
         "title": "Review Modules 6 - 10",
         "content": "A review or quiz covering all content from modules 6-10...",
         "moduleId": "module-review-6-10",
@@ -410,7 +399,6 @@ const coursesData = {
             "module-8",
             "module-9",
             "module-10",
-            "module-updated-tech",
             "module-review-6-10",
             "module-final-test"
         ]
