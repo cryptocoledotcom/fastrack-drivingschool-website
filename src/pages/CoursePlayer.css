@@ -57,6 +57,14 @@
   text-decoration: line-through;
 }
 
+/*
+.sidebar li.locked {
+  color: var(--light-gray-3);
+  cursor: not-allowed;
+  background-color: transparent; 
+}
+*/
+
 .lesson-status-icon {
   font-size: 0.8rem;
   position: relative;

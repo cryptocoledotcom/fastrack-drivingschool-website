@@ -236,6 +236,13 @@ const CoursePlayer = () => {
     return <div className="error-container">{error}</div>;
   }
 
+  // =================================================================================
+  // NOTE: The section below implements lesson locking, which prevents users from
+  // skipping ahead. It is commented out for development/testing purposes.
+  // To re-enable, uncomment this section and the corresponding CSS in CoursePlayer.css.
+  // const firstUncompletedId = findFirstUncompletedLesson(modules, completedLessons);
+  // =================================================================================
+
   return (
     <div className="course-player-container">
       <div className="sidebar">
@@ -249,9 +256,21 @@ const CoursePlayer = () => {
                         if (!lesson) return null;
                         const isCompleted = completedLessons.has(lessonId);
                         const isActive = currentLesson?.id === lessonId;
+
+                        // =================================================================================
+                        // NOTE: This logic determines if a lesson is "unlocked".
+                        // A lesson is unlocked if it's already completed OR if it's the next
+                        // lesson in the sequence.
+                        // const isUnlocked = isCompleted || lessonId === firstUncompletedId;
+                        // =================================================================================
+
                         return (
                             <li 
                                 key={lesson.id} 
+                                // className={`${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${!isUnlocked ? 'locked' : ''}`}
+                                // onClick={() => {
+                                //     if (isUnlocked) setCurrentLesson(lesson);
+                                // }}
                                 className={`${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
                                 onClick={() => setCurrentLesson(lesson)}
                             >
