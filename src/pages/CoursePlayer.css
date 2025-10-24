@@ -21,6 +21,7 @@
   font-size: 1.1em;
   color: #eee;
   margin-top: 20px;
+  text-decoration: underline;
 }
 
 .sidebar ul {
@@ -97,6 +98,7 @@
   margin-top: 0;
   font-size: 2rem;
   margin-bottom: 1.5rem;
+  text-decoration: underline;
 }
 
 .video-player-wrapper {

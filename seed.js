@@ -42,13 +42,13 @@ async function deleteQueryBatch(db, query, resolve) {
 
 const modulesData = {
     "module-intro": {
-        "title": "Introduction and Program Administration",
+        "title": "Introduction",
         "durationMinutes": 30,
         "courseId": "fastrack-online",
         "lessonOrder": ["lesson-intro-1"]
     },
     "module-1": {
-        "title": "The System and You",
+        "title": "The System & You",
         "durationMinutes": 60,
         "courseId": "fastrack-online",
         "lessonOrder": [
@@ -92,7 +92,7 @@ const modulesData = {
         ]
     },
     "module-4": {
-        "title": "Traffic Control Devices and Laws",
+        "title": "Traffic Control Devices & Laws",
         "durationMinutes": 120,
         "courseId": "fastrack-online",
         "lessonOrder": [
@@ -111,7 +111,7 @@ const modulesData = {
         ]
     },
     "module-5": {
-        "title": "Perception and Driving Strategies for Different Environments",
+        "title": "Perception & Driving Strategies for Different Environments",
         "durationMinutes": 240,
         "courseId": "fastrack-online",
         "lessonOrder": [
@@ -130,7 +130,7 @@ const modulesData = {
         "lessonOrder": ["lesson-review-1-5"]
     },
     "module-6": {
-        "title": "Natural Laws Affecting Vehicle and Operator Performance",
+        "title": "Natural Laws Affecting Vehicle & Operator Performance",
         "durationMinutes": 75,
         "courseId": "fastrack-online",
         "lessonOrder": [
@@ -181,7 +181,7 @@ const modulesData = {
         ]
     },
     "module-10": {
-        "title": "Responsibilities of Owning and Maintaining a Vehicle",
+        "title": "Responsibilities of Owning & Maintaining a Vehicle",
         "durationMinutes": 45,
         "courseId": "fastrack-online",
         "lessonOrder": [
@@ -207,9 +207,9 @@ const modulesData = {
 };
 
 const lessonsData = {
-    // Module: intro-admin
+    // Module: module-intro
     "lesson-intro-1": {
-        "title": "Introduction and Program Administration",
+        "title": "Introduction",
         "content": "Welcome to the Fastrack Online Driving Course! This initial lesson will guide you through the program's structure, what to expect, and how to successfully complete your driver education.",
         "videoUrl": "boXMHM8LJD8",
         "moduleId": "module-intro",
@@ -286,7 +286,7 @@ const lessonsData = {
         "courseId": "fastrack-online"
     },
     "lesson-3-12": {
-        "title": "Securing and Leaving the Vehicle",
+        "title": "Securing & Leaving the Vehicle",
         "content": "The final steps to ensure your vehicle is safe and secure after you've parked.",
         "videoUrl": "T5p-wQYgI9Y",
         "moduleId": "module-3",
@@ -299,13 +299,13 @@ const lessonsData = {
     "lesson-4-3": { "title": "Traffic Signals", "content": "Learn to interpret traffic lights, including solid, flashing, and arrow signals.", "videoUrl": "j9c4pTf4w9c", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-4": { "title": "Right-of-Way", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-5": { "title": "Speed Limits", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
-    "lesson-4-6": { "title": "Following and Stopping Distances", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
-    "lesson-4-7": { "title": "Passing and Being Passed", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
+    "lesson-4-6": { "title": "Following & Stopping Distances", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
+    "lesson-4-7": { "title": "Passing & Being Passed", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-8": { "title": "Lane Usage", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-9": { "title": "Parking Laws", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
-    "lesson-4-10": { "title": "Pedestrians and Bicyclists", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
+    "lesson-4-10": { "title": "Pedestrians & Bicyclists", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
     "lesson-4-11": { "title": "School Buses", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
-    "lesson-4-12": { "title": "Violations and the Ohio Point System", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
+    "lesson-4-12": { "title": "Violations & the Ohio Point System", "content": "...", "moduleId": "module-4", "courseId": "fastrack-online" },
 
     // Module: module-5
     "lesson-5-1": { "title": "Space Management Systems", "content": "This lesson covers S.E.E., S.I.P.D.E., and Smith5Keys...", "moduleId": "module-5", "courseId": "fastrack-online" },
@@ -326,8 +326,8 @@ const lessonsData = {
     // Module: module-6
     "lesson-6-1": { "title": "Gravity", "content": "...", "moduleId": "module-6", "courseId": "fastrack-online" },
     "lesson-6-2": { "title": "Energy of Motion", "content": "...", "moduleId": "module-6", "courseId": "fastrack-online" },
-    "lesson-6-3": { "title": "Friction and Traction", "content": "...", "moduleId": "module-6", "courseId": "fastrack-online" },
-    "lesson-6-4": { "title": "Centrifugal and Centripetal Force", "content": "...", "moduleId": "module-6", "courseId": "fastrack-online" },
+    "lesson-6-3": { "title": "Friction & Traction", "content": "...", "moduleId": "module-6", "courseId": "fastrack-online" },
+    "lesson-6-4": { "title": "Centrifugal & Centripetal Force", "content": "...", "moduleId": "module-6", "courseId": "fastrack-online" },
     "lesson-6-5": { "title": "Force of Impact", "content": "...", "moduleId": "module-6", "courseId": "fastrack-online" },
 
     // Module: module-7
@@ -337,21 +337,21 @@ const lessonsData = {
     "lesson-7-4": { "title": "Post-Collision Responsibilities", "content": "...", "moduleId": "module-7", "courseId": "fastrack-online" },
 
     // Module: module-8
-    "lesson-8-1": { "title": "Low Light and Night Conditions", "content": "...", "moduleId": "module-8", "courseId": "fastrack-online" },
+    "lesson-8-1": { "title": "Low Light & Night Conditions", "content": "...", "moduleId": "module-8", "courseId": "fastrack-online" },
     "lesson-8-2": { "title": "Glare", "content": "...", "moduleId": "module-8", "courseId": "fastrack-online" },
     "lesson-8-3": { "title": "Adverse Weather", "content": "...", "moduleId": "module-8", "courseId": "fastrack-online" },
     "lesson-8-4": { "title": "Reduced Visibility", "content": "...", "moduleId": "module-8", "courseId": "fastrack-online" },
     "lesson-8-5": { "title": "Extreme Temperatures", "content": "...", "moduleId": "module-8", "courseId": "fastrack-online" },
-    "lesson-8-6": { "title": "Vehicle and Driver Preparation", "content": "...", "moduleId": "module-8", "courseId": "fastrack-online" },
+    "lesson-8-6": { "title": "Vehicle & Driver Preparation", "content": "...", "moduleId": "module-8", "courseId": "fastrack-online" },
 
     // Module: module-9
-    "lesson-9-1": { "title": "Your Senses and Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
-    "lesson-9-2": { "title": "Emotions and Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-1": { "title": "Your Senses & Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-2": { "title": "Emotions & Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
     "lesson-9-3": { "title": "Fatigue", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
     "lesson-9-4": { "title": "Short-Term Illness or Injury", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
     "lesson-9-5": { "title": "Permanent Disabilities", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
     "lesson-9-6": { "title": "Carbon Monoxide", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
-    "lesson-9-7": { "title": "Alcohol and Other Drugs", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
+    "lesson-9-7": { "title": "Alcohol & Other Drugs", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
     "lesson-9-8": { "title": "Distracted Driving", "content": "...", "moduleId": "module-9", "courseId": "fastrack-online" },
 
     // Module: module-10
