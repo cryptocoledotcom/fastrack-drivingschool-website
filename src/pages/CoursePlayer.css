@@ -119,7 +119,7 @@
   border-radius: 8px;
 }
 
-.video-player-wrapper iframe {
+.video-player-wrapper iframe, .video-player-wrapper video{
   position: absolute;
   top: 0;
   left: 0;

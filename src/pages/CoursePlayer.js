@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import YouTube from 'react-youtube';
 import { db } from "../Firebase";
 import {
   collection,
@@ -199,34 +198,28 @@ const CoursePlayer = () => {
     }
   };
 
-  const onPlayerStateChange = (event) => {
-    const player = event.target;
+  const videoRef = useRef(null);
 
-    // Clear any existing interval when state changes
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    if (event.data === window.YT.PlayerState.PLAYING) {
-      // If video is playing, start checking the time
-      intervalRef.current = setInterval(() => {
-        const duration = player.getDuration();
-        const currentTime = player.getCurrentTime();
-        if (duration > 0 && duration - currentTime <= 3) {
-          setIsVideoWatched(true);
-          clearInterval(intervalRef.current);
-        }
-      }, 1000);
-    }
-
-    if (event.data === window.YT.PlayerState.ENDED) {
-      // If video ends, mark as watched and clear interval
-      setIsVideoWatched(true);
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+  const handleTimeUpdate = () => {
+    const video = videoRef.current;
+    if (video) {
+      const duration = video.duration;
+      const currentTime = video.currentTime;
+      if (duration > 0 && duration - currentTime <= 3) {
+        setIsVideoWatched(true);
       }
     }
   };
+
+  const handleVideoEnded = () => {
+    setIsVideoWatched(true);
+  };
+
+  useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+  }, [currentLesson]);
 
   if (loading) {
     return <div className="loading-container">Loading Course...</div>;
@@ -298,14 +291,13 @@ const CoursePlayer = () => {
             <h2>{currentLesson.title}</h2>
             <div className="video-player-wrapper">
               {currentLesson.videoUrl ? (
-                <YouTube
-                  videoId={currentLesson.videoUrl}
-                  className="video-player" // Ensure this class makes it responsive
-                  opts={{ 
-                    width: '100%', 
-                    height: '100%',
-                  }}
-                  onStateChange={onPlayerStateChange}
+                <video
+                  ref={videoRef}
+                  src={currentLesson.videoUrl}
+                  className="video-player"
+                  controls
+                  onTimeUpdate={handleTimeUpdate}
+                  onEnded={handleVideoEnded}
                   title={currentLesson.title}
                 />
               ) : (
