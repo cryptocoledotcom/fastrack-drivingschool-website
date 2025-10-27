@@ -1,6 +1,6 @@
 /* src/pages/Contact.css */
 .contact-page-container {
-    background-color: #rebeccapurple; /* Purple background */
+    background-color: rebeccapurple; /* Purple background */
     color: white;
     min-height: calc(100vh - 80px); /* Full height minus navbar */
     line-height: 1.6;
@@ -28,4 +28,8 @@
 
 .contact-details {
     margin: 30px 0;
+}
+
+.btn btn-primary {
+    color: var(--white);
 }
