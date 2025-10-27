@@ -36,8 +36,8 @@ function Courses() {
           {courses.map(course => (
             <div key={course.id} className="course-card">
               <h2>{course.title}</h2>
-              <p>{course.description}</p>
-              <p className="course-price">${course.price}</p>
+              <p className="course-description">{course.description}</p>
+              <p className="course-price">$<span className="price-amount">{course.price}</span></p>
               <Link to={`/courses/${course.id}`} className="btn btn-primary">Course Information</Link>
             </div>
           ))}

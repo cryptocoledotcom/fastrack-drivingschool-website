@@ -95,7 +95,7 @@ function Home() {
           </div>
           <div className="card">
             <h3>50 Hours of Supervised Driving Practice</h3>
-            <p>This is practice time in addition to your 8 hours with an instructor. It must be supervised by a licensed adult who is 21 or older (like a parent or guardian). 10 of these 50 hours must be at night. You must document these hours and submit a notarized Fifty-Hour Affidavit (BMV 5791) when you take your road test.</p>
+            <p>This is practice time in addition to your 8 hours with an instructor. It must be supervised by a licensed adult who is 21 or older (like a parent or guardian).</p>
           </div>
         </div>
       </section>
