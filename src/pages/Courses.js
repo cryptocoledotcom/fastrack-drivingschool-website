@@ -22,13 +22,13 @@ function Courses() {
     <>
       <div className="course-info-container">
         <h1>Ohio Driver's Training Made Simple:</h1>
-        <h2>Fastrack Driving School offers state-approved driver's education for new drivers aged 16-21. Our program provides everything you need to meet the Ohio Department of Public Safety requirements and confidently prepare for your licensing exam.</h2>
+        <p>Fastrack Driving School offers state-approved driver's education for new drivers aged 15½-20. Our program provides everything you need to meet the Ohio Department of Public Safety requirements and confidently prepare for your licensing exam.</p>
         <h1>Complete State-Approved Program:</h1> 
-        <h2>We provide the full 24 hours of classroom lessons and 8 hours of behind-the-wheel instruction required by the state of Ohio.</h2>
+        <p>We provide the full 24 hours of classroom lessons and 8 hours of behind-the-wheel instruction required by the state of Ohio.</p>
         <h1>Convenient Online Scheduling:</h1> 
-        <h2>Manage your in-car lessons with ease. Your online student profile allows you to book driving times, receive real-time updates, and get automated reminders for upcoming appointments.</h2>
+        <p>Manage your in-car lessons with ease. Your online student profile allows you to book driving times, receive real-time updates, and get automated reminders for upcoming appointments.</p>
         <h1>Full Exam Preparation:</h1> 
-        <h2>We guide you through every step of the process, ensuring you have the knowledge, skill, and confidence needed to succeed on your exam and become a safe driver.</h2>
+        <p>We guide you through every step of the process, ensuring you have the knowledge, skill, and confidence needed to succeed on your exam and become a safe driver.</p>
       </div>
       <div className="course-list-container">
         <h1 className="courses-title">Our Courses</h1>

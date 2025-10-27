@@ -7,6 +7,12 @@
 
 .course-info-container h1 {
   color: var(--white);
+  text-decoration: underline
+}
+
+
+.course-info-container p {
+  color: var(--white);
 }
 
 .course-info-container > h2 {
@@ -22,6 +28,7 @@
 .features-title {
   color: var(--dark-gray);
   margin-bottom: 30px;
+  text-decoration: underline;
 }
 
 .feature-list {
@@ -38,11 +45,21 @@
   padding: 20px;
   width: 300px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s; /* Add transition for smooth animation */
+}
+
+.feature-card:hover {
+  transform: translateY(-5px); /* Bounce effect on hover */
 }
 
 .feature-card h2 {
   font-size: 1.5rem;
   color: var(--dark-gray);
+  text-decoration: underline;
+}
+
+.feature-card p {
+  color: var(--black);
 }
 
 .course-list-container {
@@ -53,6 +70,7 @@
 
 .courses-title {
     color: var(--white);
+    text-decoration: underline;
 }
 
 .course-list {
@@ -62,6 +80,11 @@
   gap: 30px;
   margin-top: 30px;
 }
+
+.course-list p {
+  color: var(--black);
+}
+
 
 .course-card {
   background: var(--light-gray-1);
@@ -80,6 +103,7 @@
 .course-card h2 {
   font-size: 1.5rem;
   color: var(--dark-gray);
+  text-decoration: underline;
 }
 
 .course-price {

@@ -50,6 +50,10 @@
   transform: translateY(-5px);
 }
 
+.card h3 {
+  text-decoration: underline;
+}
+
 /* Carousel custom styles */
 .carousel-root {
   max-width: 800px;
@@ -74,4 +78,18 @@
 .carousel .control-arrow:before, .carousel.carousel-slider .control-arrow:before {
     border-right-color: var(--secondary-color);
     border-left-color: var(--secondary-color);
+}
+
+/* Styles for the new info section */
+.page-section.info-section {
+  background-color: white;
+}
+
+.page-section.info-section h2 {
+  color: black;
+}
+
+.page-section.info-section .card {
+  background-color: var(--dark-gray);
+  color: white;
 }

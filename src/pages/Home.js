@@ -80,6 +80,26 @@ function Home() {
           </div>
         </div>
       </section>
+
+      <section className="page-section info-section">
+        <h2>Drivers Under Age 21 (Ages 15½ - 20)</h2>
+        <h3>For all new drivers under 21, Ohio mandates a complete "Class D" driver education program. This program has three main components:</h3>
+        <div className="card-container">
+          <div className="card">
+            <h3>24 Hours of Instruction</h3>
+            <p>This is the "classroom" portion, which can be completed at a traditional in-person driving school or through a BMV-approved online course. Teens can begin this course at age 15 years and 5 months.</p>
+          </div>
+          <div className="card">
+            <h3>8 Hours of Behind-the-Wheel Training</h3>
+            <p>This in-car training must be completed with a state-certified driving instructor from a licensed driving school.</p>
+          </div>
+          <div className="card">
+            <h3>50 Hours of Supervised Driving Practice</h3>
+            <p>This is practice time in addition to your 8 hours with an instructor. It must be supervised by a licensed adult who is 21 or older (like a parent or guardian). 10 of these 50 hours must be at night. You must document these hours and submit a notarized Fifty-Hour Affidavit (BMV 5791) when you take your road test.</p>
+          </div>
+        </div>
+      </section>
+
       <section className="page-section">
         <h2>What Our Customers Are Saying:</h2>
         <Carousel
@@ -88,7 +108,7 @@ function Home() {
           showThumbs={false}
           showStatus={false}
           autoPlay={true}
-          interval={5000}
+          interval={3000}
         >
           {testimonials.map((testimonial, index) => (
             <div key={index} className="card">
