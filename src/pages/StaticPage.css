@@ -11,6 +11,11 @@
 
 .static-page-container h1 {
   margin-bottom: 20px;
+  text-decoration: underline;
+}
+
+.static-page-container p {
+  margin-bottom: 1rem;
 }
 
 .contact-details {

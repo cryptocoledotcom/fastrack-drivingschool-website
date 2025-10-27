@@ -68,6 +68,12 @@ function Contact() {
           <button type="submit" className="btn btn-primary">Send Message</button>
         </form>
       </div>
+
+      <div className="form-instructions">
+        <p>
+          Please be sure to include all your student information and a detailed description of what you need answered so we can better assist you.
+        </p>
+      </div>
     </div>
   );
 }

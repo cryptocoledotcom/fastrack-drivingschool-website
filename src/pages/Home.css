@@ -6,7 +6,7 @@
 .hero-section {
   background: var(--primary-color);
   color: var(--white);
-  padding: 100px 20px;
+  padding: 50px 20px 100px;
 }
 
 .hero-section h1 {
@@ -22,6 +22,7 @@
 .page-section {
   background: var(--dark-gray);
   padding: 50px 20px;
+  margin-top: 10px;
 }
 
 .page-section h2 {
@@ -55,9 +56,6 @@
   text-decoration: underline;
 }
 
-.card p {
-  color: var(--black);
-}
 
 /* Carousel custom styles */
 .carousel-root {

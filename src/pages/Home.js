@@ -51,8 +51,8 @@ function Home() {
   return (
     <div className="home-container">
       <header className="hero-section">
-        <h1>Welcome to Fastrack Driving School LLC.</h1>
-        <p>Your journey to becoming a safe and confident driver starts here.</p>
+        <h1>The Driving Course You'll Actually Want to Take</h1>
+        <p>A better, cooler online experience for new Ohio drivers</p>
         <Link to="/courses" className="btn btn-primary">View Our Courses</Link>
       </header>
       <section className="page-section">
@@ -97,6 +97,7 @@ function Home() {
             <h3>50 Hours of Supervised Driving Practice</h3>
             <p>This is practice time in addition to your 8 hours with an instructor. It must be supervised by a licensed adult who is 21 or older (like a parent or guardian).</p>
           </div>
+          <h3>At Fastrack, we can provide the online learning as well as the behind the wheel training so that you and your child can begin the 50 hours of practice knowing that you've learned from the most capable driver's education team out there.</h3><h3> Fastrack Driving School LLC. currently operates and services Columbiana county Ohio only</h3>
         </div>
       </section>
 
