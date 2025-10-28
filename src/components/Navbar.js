@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../pages/Auth/AuthContext';
 import './Navbar.css';
 
-import logo from '../assets/fastrackLogoLettering2.png';
+import logo from '../assets/FastrackLogo5.png';
 
 function Navbar() {
   const { user, logout } = useAuth();
