@@ -166,10 +166,11 @@ const CoursePlayer = () => {
         }
     }
 
+    const currentInterval = intervalRef.current;
     // Cleanup interval on lesson change
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (currentInterval) {
+        clearInterval(currentInterval);
       }
     };
 
