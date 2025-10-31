@@ -38,15 +38,14 @@ const CourseDetails = () => {
     <>
       <div className="course-detail-header">
         <h1>{course.title}</h1>
-        <p className="course-detail-price">${course.price}</p>
       </div>
       <div className="course-detail-body">
         {course.id === 'fastrack-online' ? (
-          <OnlineCourseDescription />
+          <OnlineCourseDescription price={course.price} />
         ) : course.id === 'fastrack-behind-the-wheel' ? (
-          <BehindTheWheelCourseDescription />
+          <BehindTheWheelCourseDescription price={course.price} />
         ) : course.id === 'fastrack-complete' ? (
-          <OnlineAndBehindTheWheelCourseDescription />
+          <OnlineAndBehindTheWheelCourseDescription price={course.price} />
         ) : (
           <p className="course-detail-description">{course.description}</p>
         )}
@@ -56,7 +55,7 @@ const CourseDetails = () => {
   );
 };
 
-const OnlineCourseDescription = () => (
+const OnlineCourseDescription = ({ price }) => (
   <div className="online-course-description">
     <h2>Become a Safe, Confident Ohio Driver with Our State-Approved Online Course</h2>
     <p>Get on the road to earning your driver's permit with our comprehensive online classroom course, fully approved by the Ohio Bureau of Motor Vehicles (BMV). This 24-hour program is specifically designed to provide new drivers with the foundational knowledge and skills required to be a safe and competent driver in Ohio.</p>
@@ -85,11 +84,12 @@ const OnlineCourseDescription = () => (
     <p><strong>Enroll today and take the first step towards becoming a responsible and skilled driver on Ohio's roads!</strong></p>
     <div className="enroll-button-container">
       <Link to="/purchase/fastrack-online" className="btn btn-primary">Enroll Now</Link>
+      <p className="course-detail-price">${price}</p>
     </div>
   </div>
 );
 
-const BehindTheWheelCourseDescription = () => (
+const BehindTheWheelCourseDescription = ({ price }) => (
   <div className="online-course-description">
     <h2>Master the Road: Expert Behind-the-Wheel Driving Instruction</h2>
     <p>Transition from theory to practice with our comprehensive 8-hour behind-the-wheel driving course. Designed for aspiring Ohio drivers, this program provides essential hands-on experience in the driver's seat under the guidance of our professional, state-certified instructors. Our goal is to build your confidence and shape you into a safe, skilled, and responsible driver.</p>
@@ -126,11 +126,12 @@ const BehindTheWheelCourseDescription = () => (
     <p><strong>Enroll today and take the first step towards becoming a responsible and skilled driver on Ohio's roads!</strong></p>
     <div className="enroll-button-container">
       <Link to="/purchase/fastrack-behind-the-wheel" className="btn btn-primary">Enroll Now</Link>
+      <p className="course-detail-price">${price}</p>
     </div>
   </div>
 );
 
-const OnlineAndBehindTheWheelCourseDescription = () => (
+const OnlineAndBehindTheWheelCourseDescription = ({ price }) => (
   <div className="online-course-description">
     <h2>The Complete Driver's Package: Your All-in-One Path to Driving Freedom</h2>
     <p>Get the most comprehensive and convenient driver's education experience with the Fastrack Complete Package. This bundle combines our 24-hour, state-approved online classroom with our 8-hour, hands-on behind-the-wheel training program.</p>
@@ -155,6 +156,7 @@ const OnlineAndBehindTheWheelCourseDescription = () => (
     <p><strong>Choose the complete package for the easiest, most efficient, and most affordable path to getting your Ohio driver's license.</strong></p>
     <div className="enroll-button-container">
       <Link to="/purchase/fastrack-complete" className="btn btn-primary">Enroll Now</Link>
+      <p className="course-detail-price">${price}</p>
     </div>
   </div>
 );

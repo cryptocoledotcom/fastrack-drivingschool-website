@@ -89,6 +89,7 @@
 .course-card h2 {
   font-size: 1.5rem;
   color: var(--dark-gray);
+  text-decoration: underline;
 }
 
 .course-card .course-description {
@@ -98,6 +99,6 @@
 .course-card .course-price {
   font-size: 1.2rem;
   font-weight: bold;
-  color: var(--price-color);
+  color: #2E7D32; /* Darker green for accessibility */
   margin: 15px 0;
 }

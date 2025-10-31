@@ -20,11 +20,12 @@
     border-radius: 0 0 8px 8px;
 }
 
-.course-detail-price {
+/* Making this selector more specific to override the general 'p' tag color */
+.online-course-description .course-detail-price {
     font-size: 1.5rem;
     font-weight: bold;
-    color: var(--price-color);
-    margin-bottom: 1.5rem;
+    color: #2E7D32; /* Darker green for accessibility */
+    margin: 1.5rem 0 0;
 }
 
 .course-detail-description {
