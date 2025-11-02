@@ -81,6 +81,18 @@ function Home() {
         </div>
       </section>
 
+      <section className="page-section video-section">
+        <h2>See What We're About!</h2>
+          <div className="video-player-wrapper">
+            <video controls autoPlay muted loop playsInline>
+            <source src="/path/to/your/video.webm" type="video/webm" />
+            <source src="/assets/" type="video/mp4" />
+            Sorry, your browser doesn't support embedded videos.
+            </video>
+        </div>
+      </section>
+
+
       <section className="page-section info-section">
         <h2>Drivers Under Age 21 (Ages 15½ - 20)</h2>
         <h3>For all new drivers under 21, Ohio mandates a complete "Class D" driver education program. This program has three main components:</h3>
