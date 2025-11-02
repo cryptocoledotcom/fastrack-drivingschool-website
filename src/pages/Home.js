@@ -56,6 +56,17 @@ function Home() {
         <p>A better, cooler online experience for new Ohio drivers</p>
         <Link to="/courses" className="btn btn-primary">View Our Courses</Link>
       </header>
+
+      <section className="page-section logo-intro-section">
+        <div className="video-player-wrapper">
+          {/* Make sure to place your logo video in the `public/assets` folder */}
+          <video autoPlay muted loop playsInline>
+            <source src="/assets/logo introduction.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      </section>
+
       <section className="page-section">
         <h2>Why Choose Us?</h2>
         <div className="card-container">
