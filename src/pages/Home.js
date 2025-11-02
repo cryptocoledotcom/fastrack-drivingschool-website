@@ -4,6 +4,7 @@ import { Carousel } from 'react-responsive-carousel';
 import 'react-responsive-carousel/lib/styles/carousel.min.css';
 import './Home.css';
 
+
 const testimonials = [
   {
     name: "Johnathen Rickenbach",
@@ -85,8 +86,12 @@ function Home() {
         <h2>See What We're About!</h2>
           <div className="video-player-wrapper">
             <video controls autoPlay muted loop playsInline>
-            <source src="/path/to/your/video.webm" type="video/webm" />
-            <source src="/assets/" type="video/mp4" />
+            {/* --- FOR DEVELOPMENT --- */}
+            {/* Use this line to serve the video locally and avoid Firebase bandwidth costs. */}
+            <source src="/assets/homepage video.mp4" type="video/mp4" />
+
+            {/* --- FOR PRODUCTION --- */}
+            {/* <source src="https://firebasestorage.googleapis.com/v0/b/fastrack-drivingschool-website.firebasestorage.app/o/course_videos%2Fhomepage%20video.mp4?alt=media&token=52e44785-d642-4aa6-bf68-c07e7bbc89d1" type="video/mp4" /> */}
             Sorry, your browser doesn't support embedded videos.
             </video>
         </div>
