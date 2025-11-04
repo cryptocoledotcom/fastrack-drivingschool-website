@@ -5,3 +5,6 @@ node_modules
 
 # Service account keys
 fastrack-drivingschool-website-firebase-adminsdk-prc97-732953591a.json.json
+
+# Ignore all video files
+*.mp4
