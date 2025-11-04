@@ -161,13 +161,13 @@ const CoursePlayer = () => {
     // Reset video watched status when lesson changes
     if (nextLesson) {
         // If the new lesson has no video, it's considered "watched" immediately.
-        if (!nextLesson.videoUrl && !nextLesson.videoUrl2) {
-            setIsPrimaryVideoWatched(true);
-            setIsSecondaryVideoWatched(true);
-        } else {
-            setIsPrimaryVideoWatched(false);
-            setIsSecondaryVideoWatched(false);
-        }
+      if (!nextLesson.videoUrl && !nextLesson.videoUrl2) {
+        setIsPrimaryVideoWatched(true);
+        setIsSecondaryVideoWatched(true);
+      } else {
+        setIsPrimaryVideoWatched(false);
+        setIsSecondaryVideoWatched(false);
+      }
     }
 
     const currentInterval = intervalRef.current;
@@ -205,25 +205,13 @@ const CoursePlayer = () => {
 
   const videoRef = useRef(null);
 
-  const handleTimeUpdate = () => {
-    const video = videoRef.current;
-    if (video) {
-      const duration = video.duration;
-      const currentTime = video.currentTime;
-      if (duration > 0 && duration - currentTime <= 3) {
-        // This handler is for the self-hosted video, which could be primary or secondary
-        if (currentLesson.videoUrl2 && isPrimaryVideoWatched) {
-            setIsSecondaryVideoWatched(true);
-        } else {
-            setIsPrimaryVideoWatched(true);
-        }
-      }
-    }
+  const handleVideoEnded = () => {
+    setIsPrimaryVideoWatched(true);
   };
 
-  const handleVideoEnded = () => {
-    // This can be triggered by either the YouTube video or the self-hosted one.
-    setIsPrimaryVideoWatched(true);
+  // This handler is ONLY for the secondary <video> tag.
+  const handleSecondaryVideoEnded = () => {
+    setIsSecondaryVideoWatched(true);
   };
 
   useEffect(() => {
@@ -232,9 +220,10 @@ const CoursePlayer = () => {
     }
   }, [currentLesson]);
 
-  const areAllVideosWatched = 
-    !currentLesson?.videoUrl || 
-    (isPrimaryVideoWatched && (!currentLesson.videoUrl2 || isSecondaryVideoWatched));
+  const areAllVideosWatched =
+    !currentLesson?.videoUrl ||
+    (isPrimaryVideoWatched &&
+      (!currentLesson.videoUrl2 || isSecondaryVideoWatched));
 
 
   if (loading) {
@@ -306,55 +295,39 @@ const CoursePlayer = () => {
           <div>
             <h2>{currentLesson.title}</h2>
             <div className="video-player-wrapper">
-              {/* Primary Video Player */}
-              {currentLesson.videoUrl && !isPrimaryVideoWatched && (
-                  currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
-                      <video
-                          ref={videoRef}
-                          src={currentLesson.videoUrl}
-                          className="video-player"
-                          controls
-                          onTimeUpdate={handleTimeUpdate}
-                          onEnded={handleVideoEnded}
-                          title={currentLesson.title}
-                      />
+              {(() => {
+                // Case 1: Lesson has two videos, and the first one hasn't been watched yet.
+                if (currentLesson.videoUrl && currentLesson.videoUrl2 && !isPrimaryVideoWatched) {
+                  return currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
+                    <video ref={videoRef} src={currentLesson.videoUrl} className="video-player" controls onEnded={handleVideoEnded} title={currentLesson.title} />
                   ) : (
-                      <YouTube
-                          videoId={currentLesson.videoUrl}
-                          className="video-player"
-                          onReady={(event) => (videoRef.current = event.target)}
-                          onEnd={handleVideoEnded}
-                      />
-                  )
-              )}
+                    <YouTube videoId={currentLesson.videoUrl} className="video-player" onReady={(event) => (videoRef.current = event.target)} onEnd={handleVideoEnded} />
+                  );
+                }
 
-              {/* "Up Next" message */}
-              {currentLesson.videoUrl && isPrimaryVideoWatched && currentLesson.videoUrl2 && !isSecondaryVideoWatched && (
+                // Case 2: Lesson has two videos, and the first one IS watched. Show the second video.
+                if (currentLesson.videoUrl2 && isPrimaryVideoWatched) {
+                  return (
+                    <video ref={videoRef} src={currentLesson.videoUrl2} className="video-player" controls autoPlay onEnded={handleSecondaryVideoEnded} title={`${currentLesson.title} - Part 2`} />
+                  );
+                }
+
+                // Case 3: Lesson has only ONE video.
+                if (currentLesson.videoUrl) {
+                  return currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
+                    <video ref={videoRef} src={currentLesson.videoUrl} className="video-player" controls onEnded={handleVideoEnded} title={currentLesson.title} />
+                  ) : (
+                    <YouTube videoId={currentLesson.videoUrl} className="video-player" onReady={(event) => (videoRef.current = event.target)} onEnd={handleVideoEnded} />
+                  );
+                }
+
+                // Case 4: Lesson has no videos at all.
+                return (
                   <div className="video-placeholder">
-                      <p>Great! Now watch the key takeaways for this lesson.</p>
+                    No video for this lesson.
                   </div>
-              )}
-
-              {/* Secondary Video Player */}
-              {currentLesson.videoUrl2 && isPrimaryVideoWatched && (
-                  <video
-                      ref={videoRef}
-                      src={currentLesson.videoUrl2}
-                      className="video-player"
-                      controls
-                      autoPlay
-                      onTimeUpdate={handleTimeUpdate}
-                      onEnded={() => setIsSecondaryVideoWatched(true)}
-                      title={`${currentLesson.title} - Part 2`}
-                  />
-              )}
-
-              {/* No Video Placeholder */}
-              {!currentLesson.videoUrl && !currentLesson.videoUrl2 && (
-                <div className="video-placeholder">
-                  No video for this lesson.
-                </div>
-              )}
+                );
+              })()}
             </div>
             <div className="lesson-description-box">
               <p>

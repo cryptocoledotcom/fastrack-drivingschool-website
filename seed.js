@@ -211,7 +211,7 @@ const lessonsData = {
     "lesson-intro-1": {
         "title": "Introduction",
         "content": "Welcome to the Fastrack Online Driving Course! This initial lesson will guide you through the program's structure, what to expect, and how to successfully complete your driver education.",
-        "videoUrl": "boXMHM8LJD8",
+        "videoUrl": "/assets/introduction.mp4",
         "moduleId": "module-intro",
         "courseId": "fastrack-online"
     },
@@ -220,7 +220,7 @@ const lessonsData = {
     "lesson-1-1": {
         "title": "The Highway Transportation System",
         "content": "Learn about the complex system of roadways, vehicles, and people that make up our highway transportation system.",
-        "videoUrl": "pB-2T7y3xI4",
+        "videoUrl": "/assets/Module 1 Lesson 1 Video.mp4",
         "moduleId": "module-1",
         "courseId": "fastrack-online"
     },
@@ -228,11 +228,13 @@ const lessonsData = {
         "title": "Getting Your Driver’s License",
         "content": "Understand the steps, requirements, and regulations involved in obtaining your driver's license in Ohio.",
         "moduleId": "module-1",
-        "courseId": "fastrack-online"
+        "courseId": "fastrack-online",
+        "videoUrl": "/assets/M1 L2 Video.mp4",
     },
     "lesson-1-3": {
         "title": "Driver Education Value",
         "content": "Discover the importance and benefits of a comprehensive driver education program for creating safe and responsible drivers.",
+        "videoUrl": "/assets/M1 L3 Video.mp4", // Your new local video
         "moduleId": "module-1",
         "courseId": "fastrack-online"
     },
@@ -240,7 +242,9 @@ const lessonsData = {
         "title": "Anatomical Gifts",
         "content": "Learn about the anatomical gift act and how you can make a decision about organ and tissue donation.",
         "moduleId": "module-1",
-        "courseId": "fastrack-online"
+        "courseId": "fastrack-online",
+        "videoUrl": "zeycu_hflK8", // Example: 'dQw4w9WgXcQ'
+        "videoUrl2": "/assets/Myth-Busting Organ Donation Guide for Teens.mp4", // Your new local video
     },
 
     // Module: module-2
