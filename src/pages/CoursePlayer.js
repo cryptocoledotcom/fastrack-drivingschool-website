@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
+import YouTube from "react-youtube";
 import { db } from "../Firebase";
 import {
   collection,
@@ -38,7 +39,8 @@ const CoursePlayer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [courseCompleted, setCourseCompleted] = useState(false);
-  const [isVideoWatched, setIsVideoWatched] = useState(false);
+  const [isPrimaryVideoWatched, setIsPrimaryVideoWatched] = useState(false);
+  const [isSecondaryVideoWatched, setIsSecondaryVideoWatched] = useState(false);
   const intervalRef = useRef(null);
 
   // Find the specific "courses" document for this user and course
@@ -159,10 +161,12 @@ const CoursePlayer = () => {
     // Reset video watched status when lesson changes
     if (nextLesson) {
         // If the new lesson has no video, it's considered "watched" immediately.
-        if (!nextLesson.videoUrl) {
-            setIsVideoWatched(true);
+        if (!nextLesson.videoUrl && !nextLesson.videoUrl2) {
+            setIsPrimaryVideoWatched(true);
+            setIsSecondaryVideoWatched(true);
         } else {
-            setIsVideoWatched(false);
+            setIsPrimaryVideoWatched(false);
+            setIsSecondaryVideoWatched(false);
         }
     }
 
@@ -207,13 +211,19 @@ const CoursePlayer = () => {
       const duration = video.duration;
       const currentTime = video.currentTime;
       if (duration > 0 && duration - currentTime <= 3) {
-        setIsVideoWatched(true);
+        // This handler is for the self-hosted video, which could be primary or secondary
+        if (currentLesson.videoUrl2 && isPrimaryVideoWatched) {
+            setIsSecondaryVideoWatched(true);
+        } else {
+            setIsPrimaryVideoWatched(true);
+        }
       }
     }
   };
 
   const handleVideoEnded = () => {
-    setIsVideoWatched(true);
+    // This can be triggered by either the YouTube video or the self-hosted one.
+    setIsPrimaryVideoWatched(true);
   };
 
   useEffect(() => {
@@ -221,6 +231,11 @@ const CoursePlayer = () => {
       clearInterval(intervalRef.current);
     }
   }, [currentLesson]);
+
+  const areAllVideosWatched = 
+    !currentLesson?.videoUrl || 
+    (isPrimaryVideoWatched && (!currentLesson.videoUrl2 || isSecondaryVideoWatched));
+
 
   if (loading) {
     return <div className="loading-container">Loading Course...</div>;
@@ -291,17 +306,51 @@ const CoursePlayer = () => {
           <div>
             <h2>{currentLesson.title}</h2>
             <div className="video-player-wrapper">
-              {currentLesson.videoUrl ? (
-                <video
-                  ref={videoRef}
-                  src={currentLesson.videoUrl}
-                  className="video-player"
-                  controls
-                  onTimeUpdate={handleTimeUpdate}
-                  onEnded={handleVideoEnded}
-                  title={currentLesson.title}
-                />
-              ) : (
+              {/* Primary Video Player */}
+              {currentLesson.videoUrl && !isPrimaryVideoWatched && (
+                  currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
+                      <video
+                          ref={videoRef}
+                          src={currentLesson.videoUrl}
+                          className="video-player"
+                          controls
+                          onTimeUpdate={handleTimeUpdate}
+                          onEnded={handleVideoEnded}
+                          title={currentLesson.title}
+                      />
+                  ) : (
+                      <YouTube
+                          videoId={currentLesson.videoUrl}
+                          className="video-player"
+                          onReady={(event) => (videoRef.current = event.target)}
+                          onEnd={handleVideoEnded}
+                      />
+                  )
+              )}
+
+              {/* "Up Next" message */}
+              {currentLesson.videoUrl && isPrimaryVideoWatched && currentLesson.videoUrl2 && !isSecondaryVideoWatched && (
+                  <div className="video-placeholder">
+                      <p>Great! Now watch the key takeaways for this lesson.</p>
+                  </div>
+              )}
+
+              {/* Secondary Video Player */}
+              {currentLesson.videoUrl2 && isPrimaryVideoWatched && (
+                  <video
+                      ref={videoRef}
+                      src={currentLesson.videoUrl2}
+                      className="video-player"
+                      controls
+                      autoPlay
+                      onTimeUpdate={handleTimeUpdate}
+                      onEnded={() => setIsSecondaryVideoWatched(true)}
+                      title={`${currentLesson.title} - Part 2`}
+                  />
+              )}
+
+              {/* No Video Placeholder */}
+              {!currentLesson.videoUrl && !currentLesson.videoUrl2 && (
                 <div className="video-placeholder">
                   No video for this lesson.
                 </div>
@@ -316,11 +365,11 @@ const CoursePlayer = () => {
               {!completedLessons.has(currentLesson.id) && (
                 <button 
                     onClick={handleCompleteLesson} 
-                    className="btn btn-primary" 
-                    disabled={!isVideoWatched}
-                    title={!isVideoWatched ? "You must finish the lesson before you can continue." : ""}
+                    className="btn btn-primary"
+                    disabled={!areAllVideosWatched}
+                    title={!areAllVideosWatched ? "You must finish all videos before you can continue." : ""}
                 >
-                  {isVideoWatched ? 'Mark as Complete' : 'Finish the video to continue'}
+                  {areAllVideosWatched ? 'Mark as Complete' : 'Finish the video(s) to continue'}
                 </button> 
               )}
             </div>
