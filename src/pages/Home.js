@@ -61,7 +61,7 @@ function Home() {
         <div className="video-player-wrapper">
           {/* Make sure to place your logo video in the `public/assets` folder */}
           <video autoPlay muted loop playsInline>
-            <source src="/assets/logo introduction.mp4" type="video/mp4" />
+            <source src="/assets/homepage logo video.mp4" type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </div>
