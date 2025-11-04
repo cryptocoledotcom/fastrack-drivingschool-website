@@ -16,6 +16,21 @@ import {
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
 
+const findNextLesson = (modules, currentLessonId) => {
+  let foundCurrent = false;
+  for (const module of modules) {
+    for (const lessonId of module.lessonOrder) {
+      if (foundCurrent) {
+        return lessonId;
+      }
+      if (lessonId === currentLessonId) {
+        foundCurrent = true;
+      }
+    }
+  }
+  return null;
+};
+
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
     for (const lessonId of module.lessonOrder) {
@@ -39,23 +54,18 @@ const CoursePlayer = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [courseCompleted, setCourseCompleted] = useState(false);
-  const [isPrimaryVideoWatched, setIsPrimaryVideoWatched] = useState(false);
-  const [isSecondaryVideoWatched, setIsSecondaryVideoWatched] = useState(false);
-  const intervalRef = useRef(null);
+  const [videoStage, setVideoStage] = useState('primary_playing'); // 'primary_playing', 'primary_ended_awaiting_continue', 'secondary_playing', 'lesson_videos_complete', 'no_video_for_lesson'
+  const videoRef = useRef(null);
 
-  // Find the specific "courses" document for this user and course
+  // Effect to find the user's specific course enrollment
   useEffect(() => {
     const findUserCourse = async () => {
       if (!user || !courseId) return;
-
       const userCoursesRef = collection(db, "users", user.uid, "courses");
-      // Query using the courseId string instead of a document reference
       const q = query(userCoursesRef, where("courseId", "==", courseId), limit(1));
-
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty) {
-        const userCourseDoc = querySnapshot.docs[0];
-        setUserCourseId(userCourseDoc.id);
+        setUserCourseId(querySnapshot.docs[0].id);
       } else {
         setError("You do not have access to this course.");
         setLoading(false);
@@ -64,84 +74,55 @@ const CoursePlayer = () => {
     findUserCourse();
   }, [user, courseId]);
 
-  // Fetch all course content
+  // Effect to fetch all course content (modules and lessons)
   useEffect(() => {
     if (!user || !userCourseId) return;
-
     const fetchCourseContent = async () => {
       setLoading(true);
       setError("");
-
       try {
-        // 1. Fetch the main course document
         const courseRef = doc(db, "courses", courseId);
         const courseSnap = await getDoc(courseRef);
         if (!courseSnap.exists()) throw new Error("Course not found.");
-        setCourse({ id: courseSnap.id, ...courseSnap.data() });
+        const courseData = courseSnap.data();
+        setCourse({ id: courseSnap.id, ...courseData });
 
-        // 2. Fetch all modules for this course
         const modulesQuery = query(collection(db, 'modules'), where('courseId', '==', courseId));
         const modulesSnapshot = await getDocs(modulesQuery);
         const modulesData = modulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Sort modules based on the course's moduleOrder array
-        const sortedModules = modulesData.sort((a, b) => {
-            return courseSnap.data().moduleOrder.indexOf(a.id) - courseSnap.data().moduleOrder.indexOf(b.id);
-        });
+        const sortedModules = modulesData.sort((a, b) => courseData.moduleOrder.indexOf(a.id) - courseData.moduleOrder.indexOf(b.id));
         setModules(sortedModules);
 
-        // 3. Fetch all lessons for this course
-        if (sortedModules.length > 0) {
-            const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
-            const lessonsSnapshot = await getDocs(lessonsQuery);
-            const lessonsData = {};
-            lessonsSnapshot.docs.forEach(doc => {
-                lessonsData[doc.id] = { id: doc.id, ...doc.data() };
-            });
-            setLessons(lessonsData);
-        } else {
-            setLessons({});
-        }
-
+        const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
+        const lessonsSnapshot = await getDocs(lessonsQuery);
+        const lessonsData = {};
+        lessonsSnapshot.docs.forEach(doc => {
+          lessonsData[doc.id] = { id: doc.id, ...doc.data() };
+        });
+        setLessons(lessonsData);
       } catch (err) {
         console.error("Error fetching course content:", err);
-        setError(
-          "Failed to load course content. Please check the course ID and your Firestore structure."
-        );
+        setError("Failed to load course content.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchCourseContent();
   }, [courseId, user, userCourseId]);
 
-  // Listen for completed lessons changes
+  // Effect to listen for changes in completed lessons
   useEffect(() => {
     if (!user || !userCourseId) return;
-
-    const progressRef = collection(
-      db,
-      "users",
-      user.uid,
-      "courses",
-      userCourseId,
-      "completed_lessons"
-    );
+    const progressRef = collection(db, "users", user.uid, "courses", userCourseId, "completed_lessons");
     const unsubscribe = onSnapshot(progressRef, (snapshot) => {
-      const completedIds = new Set(snapshot.docs.map((doc) => doc.id));
-      setCompletedLessons(completedIds);
+      setCompletedLessons(new Set(snapshot.docs.map((doc) => doc.id)));
     });
-
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [user, userCourseId]);
 
-  // Set the current lesson or show completion message
+  // Main logic effect to determine the current lesson
   useEffect(() => {
-    if (modules.length === 0) return;
-    if (Object.keys(lessons).length === 0) return;
+    if (loading || modules.length === 0 || Object.keys(lessons).length === 0) return;
 
     const allLessonsCount = modules.reduce((acc, m) => acc + m.lessonOrder.length, 0);
     if (allLessonsCount > 0 && completedLessons.size === allLessonsCount) {
@@ -151,79 +132,55 @@ const CoursePlayer = () => {
     }
 
     const firstUncompletedId = findFirstUncompletedLesson(modules, completedLessons);
-    
-    setCourseCompleted(false); // Ensure it's false if course is not complete
     const nextLessonId = firstUncompletedId || modules[0]?.lessonOrder[0];
-    const nextLesson = lessons[nextLessonId] || null;
-
-    setCurrentLesson(nextLesson);
-
-    // Reset video watched status when lesson changes
-    if (nextLesson) {
-        // If the new lesson has no video, it's considered "watched" immediately.
-      if (!nextLesson.videoUrl && !nextLesson.videoUrl2) {
-        setIsPrimaryVideoWatched(true);
-        setIsSecondaryVideoWatched(true);
-      } else {
-        setIsPrimaryVideoWatched(false);
-        setIsSecondaryVideoWatched(false);
-      }
+    
+    if (nextLessonId && lessons[nextLessonId]) {
+      setCurrentLesson({ ...lessons[nextLessonId] });
+    } else {
+      setCurrentLesson(null);
     }
+  }, [modules, lessons, completedLessons, loading]);
 
-    const currentInterval = intervalRef.current;
-    // Cleanup interval on lesson change
-    return () => {
-      if (currentInterval) {
-        clearInterval(currentInterval);
-      }
-    };
+  // Effect to reset video state when the lesson changes
+  useEffect(() => {
+    // Determine initial video stage based on the new lesson's video URLs
+    if (currentLesson?.videoUrl) {
+      setVideoStage('primary_playing');
+    } else {
+      setVideoStage('no_video_for_lesson');
+    }
+  }, [currentLesson]);
 
-  }, [modules, lessons, completedLessons]);
+  const areAllVideosWatched = 
+    videoStage === 'lesson_videos_complete' ||
+    videoStage === 'no_video_for_lesson';
+
+  const handleVideoEnded = () => {
+    if (videoStage === 'primary_playing' && currentLesson.videoUrl2) {
+      setVideoStage('primary_ended_awaiting_continue');
+    } else {
+      // This covers:
+      // 1. Primary video ended, no secondary video.
+      // 2. Secondary video ended.
+      setVideoStage('lesson_videos_complete');
+    }
+  };
 
   const handleCompleteLesson = async () => {
     if (!user || !userCourseId || !currentLesson) return;
-
     try {
-      const progressDocRef = doc(
-        db,
-        "users",
-        user.uid,
-        "courses",
-        userCourseId,
-        "completed_lessons",
-        currentLesson.id
-      );
+      const progressDocRef = doc(db, "users", user.uid, "courses", userCourseId, "completed_lessons", currentLesson.id);
       await setDoc(progressDocRef, { completedAt: new Date() });
-
-      // The onSnapshot listener will automatically update the completedLessons state,
-      // so we don't need to set it manually here.
+      // The onSnapshot listener will trigger the main useEffect to find the next lesson
     } catch (err) {
       console.error("Error saving progress:", err);
       setError("Could not save your progress. Please try again.");
     }
   };
 
-  const videoRef = useRef(null);
-
-  const handleVideoEnded = () => {
-    setIsPrimaryVideoWatched(true);
+  const handleContinueToSecondVideo = () => {
+    setVideoStage('secondary_playing');
   };
-
-  // This handler is ONLY for the secondary <video> tag.
-  const handleSecondaryVideoEnded = () => {
-    setIsSecondaryVideoWatched(true);
-  };
-
-  useEffect(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-  }, [currentLesson]);
-
-  const areAllVideosWatched =
-    !currentLesson?.videoUrl ||
-    (isPrimaryVideoWatched &&
-      (!currentLesson.videoUrl2 || isSecondaryVideoWatched));
 
 
   if (loading) {
@@ -233,13 +190,6 @@ const CoursePlayer = () => {
   if (error) {
     return <div className="error-container">{error}</div>;
   }
-
-  // =================================================================================
-  // NOTE: The section below implements lesson locking, which prevents users from
-  // skipping ahead. It is commented out for development/testing purposes.
-  // To re-enable, uncomment this section and the corresponding CSS in CoursePlayer.css.
-  // const firstUncompletedId = findFirstUncompletedLesson(modules, completedLessons);
-  // =================================================================================
 
   return (
     <div className="course-player-container">
@@ -254,23 +204,18 @@ const CoursePlayer = () => {
                         if (!lesson) return null;
                         const isCompleted = completedLessons.has(lessonId);
                         const isActive = currentLesson?.id === lessonId;
-
-                        // =================================================================================
-                        // NOTE: This logic determines if a lesson is "unlocked".
-                        // A lesson is unlocked if it's already completed OR if it's the next
-                        // lesson in the sequence.
-                        // const isUnlocked = isCompleted || lessonId === firstUncompletedId;
-                        // =================================================================================
-
                         return (
                             <li 
                                 key={lesson.id} 
-                                // className={`${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} ${!isUnlocked ? 'locked' : ''}`}
-                                // onClick={() => {
-                                //     if (isUnlocked) setCurrentLesson(lesson);
-                                // }}
                                 className={`${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
-                                onClick={() => setCurrentLesson(lesson)}
+                                onClick={() => {
+                                  // This is the key fix: reset all state when a lesson is clicked.
+                                  const newLesson = lessons[lessonId];
+                                  if (newLesson) {
+                                    setCurrentLesson(newLesson);
+                                    setVideoStage('primary'); // Explicitly reset the video stage here.
+                                  }
+                                }}
                             >
                                 <span className="lesson-status-icon">
                                     <span className="icon-box">☐</span>
@@ -295,39 +240,44 @@ const CoursePlayer = () => {
           <div>
             <h2>{currentLesson.title}</h2>
             <div className="video-player-wrapper">
-              {(() => {
-                // Case 1: Lesson has two videos, and the first one hasn't been watched yet.
-                if (currentLesson.videoUrl && currentLesson.videoUrl2 && !isPrimaryVideoWatched) {
-                  return currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
-                    <video ref={videoRef} src={currentLesson.videoUrl} className="video-player" controls onEnded={handleVideoEnded} title={currentLesson.title} />
-                  ) : (
-                    <YouTube videoId={currentLesson.videoUrl} className="video-player" onReady={(event) => (videoRef.current = event.target)} onEnd={handleVideoEnded} />
-                  );
-                }
+              {/* Primary Video Player (YouTube or self-hosted) */}
+              {videoStage === 'primary_playing' && currentLesson.videoUrl && (
+                currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
+                  <video ref={videoRef} src={currentLesson.videoUrl} className="video-player" controls onEnded={handleVideoEnded} title={currentLesson.title} />
+                ) : (
+                  <YouTube videoId={currentLesson.videoUrl} className="video-player" onEnd={handleVideoEnded} />
+                )
+              )}
 
-                // Case 2: Lesson has two videos, and the first one IS watched. Show the second video.
-                if (currentLesson.videoUrl2 && isPrimaryVideoWatched) {
-                  return (
-                    <video ref={videoRef} src={currentLesson.videoUrl2} className="video-player" controls autoPlay onEnded={handleSecondaryVideoEnded} title={`${currentLesson.title} - Part 2`} />
-                  );
-                }
+              {/* "Continue to Next Video" button */}
+              {videoStage === 'primary_ended_awaiting_continue' && currentLesson.videoUrl2 && (
+                <div className="video-placeholder">
+                  <p>You've completed the first part of this lesson.</p>
+                  <button onClick={handleContinueToSecondVideo} className="btn btn-primary">
+                    Continue to Key Takeaways
+                  </button>
+                </div>
+              )}
 
-                // Case 3: Lesson has only ONE video.
-                if (currentLesson.videoUrl) {
-                  return currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
-                    <video ref={videoRef} src={currentLesson.videoUrl} className="video-player" controls onEnded={handleVideoEnded} title={currentLesson.title} />
-                  ) : (
-                    <YouTube videoId={currentLesson.videoUrl} className="video-player" onReady={(event) => (videoRef.current = event.target)} onEnd={handleVideoEnded} />
-                  );
-                }
+              {/* Secondary Video Player (self-hosted) */}
+              {videoStage === 'secondary_playing' && currentLesson.videoUrl2 && (
+                <video
+                  ref={videoRef}
+                  src={currentLesson.videoUrl2}
+                  className="video-player"
+                  controls
+                  autoPlay
+                  onEnded={handleVideoEnded} // This will set videoStage to 'lesson_videos_complete'
+                  title={`${currentLesson.title} - Part 2`}
+                />
+              )}
 
-                // Case 4: Lesson has no videos at all.
-                return (
-                  <div className="video-placeholder">
-                    No video for this lesson.
-                  </div>
-                );
-              })()}
+              {/* Placeholder for after all videos are watched, or if there are no videos at all */}
+              {(videoStage === 'lesson_videos_complete' || videoStage === 'no_video_for_lesson') && (
+                <div className="video-placeholder">
+                  {currentLesson.videoUrl ? "Video(s) complete." : "No video for this lesson."}
+                </div>
+              )}
             </div>
             <div className="lesson-description-box">
               <p>
@@ -340,7 +290,7 @@ const CoursePlayer = () => {
                     onClick={handleCompleteLesson} 
                     className="btn btn-primary"
                     disabled={!areAllVideosWatched}
-                    title={!areAllVideosWatched ? "You must finish all videos before you can continue." : ""}
+                    title={!areAllVideosWatched ? "You must finish all videos to continue." : ""}
                 >
                   {areAllVideosWatched ? 'Mark as Complete' : 'Finish the video(s) to continue'}
                 </button> 

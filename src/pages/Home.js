@@ -91,6 +91,7 @@ function Home() {
             <p>Get your license faster with our efficient and effective teaching methods.</p>
           </div>
         </div>
+         <Link to="/courses" className="btn btn-primary video-section-btn">View Our Courses</Link>
       </section>
 
       <section className="page-section video-section">
@@ -106,6 +107,7 @@ function Home() {
             Sorry, your browser doesn't support embedded videos.
             </video>
         </div>
+         <Link to="/courses" className="btn btn-primary video-section-btn">View Our Courses</Link>
       </section>
 
 
