@@ -121,14 +121,6 @@
 }
 
 /* Styles for the new info section */
-.page-section.info-section {
-  /* This rule is no longer needed, it will inherit from .page-section */
-}
-
-.page-section.info-section h2 {
-  /* This rule is no longer needed, it will inherit the white color from .page-section h2 */
-}
-
 /* Use the direct child selector '>' to only target H3s directly inside the info-section */
 .page-section.info-section > h3 {
   color: var(--white);
@@ -137,8 +129,4 @@
 /* Target the specific H3 elements that are not direct children of .info-section */
 .page-section.info-section > .card-container > h3 {
   color: var(--white);
-}
-
-.page-section.info-section .card {
-  /* This will now use the default .card styles (white background, dark text) */
 }
