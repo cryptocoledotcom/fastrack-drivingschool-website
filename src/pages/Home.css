@@ -46,11 +46,15 @@
 }
 
 .hero-section h1 {
+  color: #fff;
+  text-align: center;
   font-size: 3rem;
   margin-bottom: 20px;
 }
 
 .hero-section p {
+  color: #fff;
+  text-align: center;
   font-size: 1.5rem;
   margin-bottom: 30px;
 }
