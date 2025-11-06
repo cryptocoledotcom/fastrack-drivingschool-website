@@ -13,6 +13,32 @@
   margin-bottom: 1rem;
 }
 
+.total-progress-section {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.progress-bar-container {
+  flex-grow: 1;
+  height: 12px;
+  background-color: var(--light-gray-2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--primary-color);
+  border-radius: 6px;
+  transition: width 0.5s ease-in-out;
+}
+
+.progress-percentage {
+  font-weight: bold;
+}
+
 .progress-stats p {
   margin: 0.5rem 0;
   font-size: 1rem;
