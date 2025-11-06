@@ -6,30 +6,14 @@ import {
   collection,
   getDocs,
   doc,
-  getDoc,
   query,
   where,
-  setDoc,
   limit,
-  onSnapshot,
+  getDoc,
 } from "firebase/firestore";
-import { useAuth } from "./Auth/AuthContext";
+import { useAuth } from "./Auth/AuthContext"; // Corrected path to AuthContext
 import "./CoursePlayer.css";
-
-const findNextLesson = (modules, currentLessonId) => {
-  let foundCurrent = false;
-  for (const module of modules) {
-    for (const lessonId of module.lessonOrder) {
-      if (foundCurrent) {
-        return lessonId;
-      }
-      if (lessonId === currentLessonId) {
-        foundCurrent = true;
-      }
-    }
-  }
-  return null;
-};
+import { getUserProgress, updateActivityProgress, incrementTimeOnLesson } from "../services/userProgressFirestoreService";
 
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
@@ -51,7 +35,9 @@ const CoursePlayer = () => {
   const [currentLesson, setCurrentLesson] = useState(null);
   const [completedLessons, setCompletedLessons] = useState(new Set());
   const [userCourseId, setUserCourseId] = useState(null);
+  const [userOverallProgress, setUserOverallProgress] = useState(null); // New state for overall user progress
   const [loading, setLoading] = useState(true);
+  const activeTimeRef = useRef({ startTime: 0, accumulatedSeconds: 0 });
   const [error, setError] = useState("");
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [videoStage, setVideoStage] = useState('primary_playing'); // 'primary_playing', 'primary_ended_awaiting_continue', 'secondary_playing', 'lesson_videos_complete', 'no_video_for_lesson'
@@ -110,19 +96,30 @@ const CoursePlayer = () => {
     fetchCourseContent();
   }, [courseId, user, userCourseId]);
 
-  // Effect to listen for changes in completed lessons
+  // Effect to fetch user's lesson progress from the new userProgress collection
   useEffect(() => {
-    if (!user || !userCourseId) return;
-    const progressRef = collection(db, "users", user.uid, "courses", userCourseId, "completed_lessons");
-    const unsubscribe = onSnapshot(progressRef, (snapshot) => {
-      setCompletedLessons(new Set(snapshot.docs.map((doc) => doc.id)));
-    });
-    return () => unsubscribe();
-  }, [user, userCourseId]);
+    const fetchProgress = async () => {
+      if (!user || !userCourseId) return;
+
+      try {
+        const progress = await getUserProgress(user.uid);
+        setUserOverallProgress(progress); // Store the full progress object
+        if (progress && progress.lessons) {
+          const completedLessonIds = Object.keys(progress.lessons).filter(lessonId => progress.lessons[lessonId].completed);
+          setCompletedLessons(new Set(completedLessonIds));
+        }
+      } catch (err) {
+        console.error("Error fetching user progress:", err);
+        setError("Failed to load your learning progress.");
+      }
+    };
+
+    fetchProgress();
+  }, [user, userCourseId]); // Reruns if the user or course context changes
 
   // Main logic effect to determine the current lesson
   useEffect(() => {
-    if (loading || modules.length === 0 || Object.keys(lessons).length === 0) return;
+    if (loading || modules.length === 0 || Object.keys(lessons).length === 0 || !userOverallProgress) return; // Wait for userOverallProgress
 
     const allLessonsCount = modules.reduce((acc, m) => acc + m.lessonOrder.length, 0);
     if (allLessonsCount > 0 && completedLessons.size === allLessonsCount) {
@@ -135,11 +132,13 @@ const CoursePlayer = () => {
     const nextLessonId = firstUncompletedId || modules[0]?.lessonOrder[0];
     
     if (nextLessonId && lessons[nextLessonId]) {
-      setCurrentLesson({ ...lessons[nextLessonId] });
+      const newLesson = { ...lessons[nextLessonId] };
+      setCurrentLesson(newLesson);
+
     } else {
       setCurrentLesson(null);
     }
-  }, [modules, lessons, completedLessons, loading]);
+  }, [modules, lessons, completedLessons, loading, user, userOverallProgress]); // Added user and userOverallProgress to dependencies
 
   // Effect to reset video state when the lesson changes
   useEffect(() => {
@@ -149,13 +148,49 @@ const CoursePlayer = () => {
     } else {
       setVideoStage('no_video_for_lesson');
     }
+    // Reset time tracking on lesson change
+    activeTimeRef.current = { startTime: 0, accumulatedSeconds: 0 };
   }, [currentLesson]);
 
-  const areAllVideosWatched = 
-    videoStage === 'lesson_videos_complete' ||
-    videoStage === 'no_video_for_lesson';
+  // Effect to track active time spent on the current lesson
+  useEffect(() => {
+    // Do not track time if there is no user/lesson, or if the lesson is already completed.
+    if (!user || !currentLesson || completedLessons.has(currentLesson.id)) {
+      return;
+    }
+
+    const SYNC_INTERVAL_SECONDS = 15;
+
+    const syncTimeToFirestore = () => {
+      let secondsToSync = activeTimeRef.current.accumulatedSeconds;
+      if (activeTimeRef.current.startTime > 0) {
+        // If video is currently playing, add the time since it started playing
+        secondsToSync += (Date.now() - activeTimeRef.current.startTime) / 1000;
+      }
+
+      const roundedSeconds = Math.floor(secondsToSync);
+      if (roundedSeconds > 0) {
+        incrementTimeOnLesson(user.uid, currentLesson.id, roundedSeconds);
+        // Reset accumulators
+        activeTimeRef.current.accumulatedSeconds = secondsToSync - roundedSeconds;
+        if (activeTimeRef.current.startTime > 0) {
+          activeTimeRef.current.startTime = Date.now();
+        }
+      }
+    };
+
+    const intervalId = setInterval(syncTimeToFirestore, SYNC_INTERVAL_SECONDS * 1000);
+
+    // Cleanup function: This runs when the lesson changes or the component unmounts.
+    return () => {
+      clearInterval(intervalId);
+      // Perform one final save when the user navigates away from the lesson.
+      syncTimeToFirestore();
+    };
+  }, [user, currentLesson, completedLessons]);
 
   const handleVideoEnded = () => {
+    handlePause(); // Accumulate final time when video ends
     if (videoStage === 'primary_playing' && currentLesson.videoUrl2) {
       setVideoStage('primary_ended_awaiting_continue');
     } else {
@@ -166,12 +201,32 @@ const CoursePlayer = () => {
     }
   };
 
+  const handlePlay = () => {
+    if (activeTimeRef.current.startTime === 0) {
+      activeTimeRef.current.startTime = Date.now();
+    }
+  };
+
+  const handlePause = () => {
+    if (activeTimeRef.current.startTime > 0) {
+      const elapsedSeconds = (Date.now() - activeTimeRef.current.startTime) / 1000;
+      activeTimeRef.current.accumulatedSeconds += elapsedSeconds;
+      activeTimeRef.current.startTime = 0; // Reset start time
+    }
+  };
+
+  const areAllVideosWatched = 
+    videoStage === 'lesson_videos_complete' ||
+    videoStage === 'no_video_for_lesson';
+
   const handleCompleteLesson = async () => {
-    if (!user || !userCourseId || !currentLesson) return;
+    if (!user || !currentLesson) return;
     try {
-      const progressDocRef = doc(db, "users", user.uid, "courses", userCourseId, "completed_lessons", currentLesson.id);
-      await setDoc(progressDocRef, { completedAt: new Date() });
-      // The onSnapshot listener will trigger the main useEffect to find the next lesson
+      // Use the new centralized service to update progress
+      await updateActivityProgress(user.uid, 'lessons', currentLesson.id, { completed: true });
+      
+      // Manually update local state to trigger UI changes and advance to the next lesson
+      setCompletedLessons(prev => new Set(prev).add(currentLesson.id));
     } catch (err) {
       console.error("Error saving progress:", err);
       setError("Could not save your progress. Please try again.");
@@ -243,7 +298,14 @@ const CoursePlayer = () => {
               {/* Primary Video Player (YouTube or self-hosted) */}
               {videoStage === 'primary_playing' && currentLesson.videoUrl && (
                 currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
-                  <video ref={videoRef} src={currentLesson.videoUrl} className="video-player" controls onEnded={handleVideoEnded} title={currentLesson.title} />
+                  <video 
+                    ref={videoRef} 
+                    src={currentLesson.videoUrl} 
+                    className="video-player" 
+                    controls 
+                    onPlay={handlePlay} onPause={handlePause} onEnded={handleVideoEnded} 
+                    title={currentLesson.title} 
+                  />
                 ) : (
                   <YouTube videoId={currentLesson.videoUrl} className="video-player" onEnd={handleVideoEnded} />
                 )
@@ -267,7 +329,7 @@ const CoursePlayer = () => {
                   className="video-player"
                   controls
                   autoPlay
-                  onEnded={handleVideoEnded} // This will set videoStage to 'lesson_videos_complete'
+                  onPlay={handlePlay} onPause={handlePause} onEnded={handleVideoEnded}
                   title={`${currentLesson.title} - Part 2`}
                 />
               )}

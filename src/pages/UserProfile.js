@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "./Auth/AuthContext";
 import "./UserProfile.css";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../Firebase";
 import { useNotification } from "../components/Notification/NotificationContext";
 
 import MyCourses from "../components/MyCourses";
+import UserProgressDashboard from "./UserProgressDashboard";
+import { deleteUserProgress } from "../services/userProgressFirestoreService";
 import formatPhoneNumber from "../utils/formatPhoneNumber";
 
 const UserProfile = () => {
@@ -128,6 +130,20 @@ const UserProfile = () => {
       console.error("Profile update error:", err);
     }
   };
+
+  const handleResetProgress = async () => {
+    if (window.confirm("Are you sure you want to reset all your course progress? This cannot be undone.")) {
+      try {
+        await deleteUserProgress(user.uid);
+        showNotification("Your course progress has been reset.", "success");
+        // You might want to force a reload or state update for the dashboard here
+        window.location.reload(); // Simple way to see the change
+      } catch (err) {
+        showNotification("Failed to reset progress: " + err.message, "error");
+      }
+    }
+  };
+
   return (
     <div className="profile-container">
       <div className="user-profile-section">
@@ -190,8 +206,12 @@ const UserProfile = () => {
           </>
         )}
         <button onClick={logout} className="btn btn-danger">Logout</button>
+        {/* --- Temporary Test Button --- */}
+        <button onClick={handleResetProgress} className="btn" style={{ marginLeft: '1rem', backgroundColor: '#ffc107' }}>Reset Progress (Test)</button>
+        {/* --- End Temporary Test Button --- */}
       </div>
       <div className="my-courses-container">
+        <UserProgressDashboard />
         <MyCourses />
       </div>
     </div>
