@@ -13,7 +13,7 @@ import {
 } from "firebase/firestore";
 import { useAuth } from "./Auth/AuthContext"; // Corrected path to AuthContext
 import "./CoursePlayer.css";
-import { getUserProgress, updateActivityProgress, incrementTimeOnLesson } from "../services/userProgressFirestoreService";
+import { getUserProgress, updateActivityProgress, addLessonTime, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson } from "../services/userProgressFirestoreService";
 
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
@@ -38,6 +38,7 @@ const CoursePlayer = () => {
   const [userOverallProgress, setUserOverallProgress] = useState(null); // New state for overall user progress
   const [loading, setLoading] = useState(true);
   const activeTimeRef = useRef({ startTime: 0, accumulatedSeconds: 0 });
+  const lastPlaybackTimeRef = useRef(0); // New ref to store the last known playback time
   const [error, setError] = useState("");
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [videoStage, setVideoStage] = useState('primary_playing'); // 'primary_playing', 'primary_ended_awaiting_continue', 'secondary_playing', 'lesson_videos_complete', 'no_video_for_lesson'
@@ -128,12 +129,20 @@ const CoursePlayer = () => {
       return;
     }
 
-    const firstUncompletedId = findFirstUncompletedLesson(modules, completedLessons);
-    const nextLessonId = firstUncompletedId || modules[0]?.lessonOrder[0];
+    // --- Resume Logic ---
+    // 1. Check if there's a last-viewed lesson for this specific course.
+    const lastViewedLessonId = userOverallProgress.lastViewedLesson?.[courseId];
+
+    // 2. If so, use it. Otherwise, find the first uncompleted lesson.
+    const nextLessonId = (lastViewedLessonId && lessons[lastViewedLessonId]) 
+      ? lastViewedLessonId 
+      : findFirstUncompletedLesson(modules, completedLessons) || modules[0]?.lessonOrder[0];
+    // --- End Resume Logic ---
     
     if (nextLessonId && lessons[nextLessonId]) {
       const newLesson = { ...lessons[nextLessonId] };
       setCurrentLesson(newLesson);
+      initializeLesson(user.uid, newLesson.id); // Set timeStart if it's the first time
 
     } else {
       setCurrentLesson(null);
@@ -152,43 +161,73 @@ const CoursePlayer = () => {
     activeTimeRef.current = { startTime: 0, accumulatedSeconds: 0 };
   }, [currentLesson]);
 
-  // Effect to track active time spent on the current lesson
+  // Effect to listen for video time updates
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    const handleTimeUpdate = () => {
+      if (videoElement) {
+        lastPlaybackTimeRef.current = videoElement.currentTime;
+      }
+    };
+
+    videoElement?.addEventListener('timeupdate', handleTimeUpdate);
+
+    return () => videoElement?.removeEventListener('timeupdate', handleTimeUpdate);
+  }, [currentLesson, videoStage]); // Re-attach listener if the lesson or video stage changes
+
+  // Effect to save the last viewed lesson
+  useEffect(() => {
+    if (user && courseId && currentLesson) {
+      setLastViewedLesson(user.uid, courseId, currentLesson.id);
+    }
+  }, [user, courseId, currentLesson]);
+
+  // Effect to handle saving progress when the user closes the tab/browser
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      // This logic runs just before the page is unloaded
+      if (user && currentLesson && !completedLessons.has(currentLesson.id) && videoRef.current) {
+        // We can't use async operations here, but we can try to send a synchronous beacon
+        // This is a "best-effort" save for tab closes.
+        const playbackTime = videoRef.current.currentTime;
+        const totalSeconds = Math.floor(activeTimeRef.current.accumulatedSeconds + ((activeTimeRef.current.startTime > 0) ? (Date.now() - activeTimeRef.current.startTime) / 1000 : 0));
+
+        // For a more reliable save on page exit, we could use navigator.sendBeacon if we had an HTTP endpoint.
+        // For now, we'll rely on the onPause and internal navigation cleanup, and this is a fallback.
+        // The most reliable save will happen in the onPause/onNavigate away logic below.
+        saveLessonPlaybackTime(user.uid, currentLesson.id, playbackTime);
+        if (totalSeconds > 0) {
+          addLessonTime(user.uid, currentLesson.id, totalSeconds);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [user, currentLesson, completedLessons]);
+
+  // Effect to save final progress on cleanup (when navigating away within the app)
   useEffect(() => {
     // Do not track time if there is no user/lesson, or if the lesson is already completed.
     if (!user || !currentLesson || completedLessons.has(currentLesson.id)) {
       return;
     }
 
-    const SYNC_INTERVAL_SECONDS = 15;
-
-    const syncTimeToFirestore = () => {
-      let secondsToSync = activeTimeRef.current.accumulatedSeconds;
-      if (activeTimeRef.current.startTime > 0) {
-        // If video is currently playing, add the time since it started playing
-        secondsToSync += (Date.now() - activeTimeRef.current.startTime) / 1000;
-      }
-
-      const roundedSeconds = Math.floor(secondsToSync);
-      if (roundedSeconds > 0) {
-        incrementTimeOnLesson(user.uid, currentLesson.id, roundedSeconds);
-        // Reset accumulators
-        activeTimeRef.current.accumulatedSeconds = secondsToSync - roundedSeconds;
-        if (activeTimeRef.current.startTime > 0) {
-          activeTimeRef.current.startTime = Date.now();
-        }
-      }
-    };
-
-    const intervalId = setInterval(syncTimeToFirestore, SYNC_INTERVAL_SECONDS * 1000);
-
     // Cleanup function: This runs when the lesson changes or the component unmounts.
     return () => {
-      clearInterval(intervalId);
-      // Perform one final save when the user navigates away from the lesson.
-      syncTimeToFirestore();
+      // When the user navigates away, calculate any remaining active time and save it.
+      if (activeTimeRef.current.startTime > 0) {
+        const elapsedSeconds = (Date.now() - activeTimeRef.current.startTime) / 1000;
+        activeTimeRef.current.accumulatedSeconds += elapsedSeconds;
+      }
+
+      const totalSeconds = Math.floor(activeTimeRef.current.accumulatedSeconds);
+      addLessonTime(user.uid, currentLesson.id, totalSeconds);
+      saveLessonPlaybackTime(user.uid, currentLesson.id, lastPlaybackTimeRef.current);
     };
   }, [user, currentLesson, completedLessons]);
 
+  // This function is called when the video ends
   const handleVideoEnded = () => {
     handlePause(); // Accumulate final time when video ends
     if (videoStage === 'primary_playing' && currentLesson.videoUrl2) {
@@ -212,6 +251,29 @@ const CoursePlayer = () => {
       const elapsedSeconds = (Date.now() - activeTimeRef.current.startTime) / 1000;
       activeTimeRef.current.accumulatedSeconds += elapsedSeconds;
       activeTimeRef.current.startTime = 0; // Reset start time
+
+      // Only save time if the lesson is NOT completed
+      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
+        const totalSeconds = Math.floor(activeTimeRef.current.accumulatedSeconds);
+        if (totalSeconds > 0) {
+          addLessonTime(user.uid, currentLesson.id, totalSeconds);
+          activeTimeRef.current.accumulatedSeconds -= totalSeconds; // Keep the remainder
+        }
+        saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current?.currentTime || 0);
+      }
+    }
+  };
+
+
+  const handleLoadedMetadata = () => {
+    if (user && currentLesson && videoRef.current) {
+      const lessonProgress = userOverallProgress?.lessons?.[currentLesson.id];
+      const savedTime = lessonProgress?.playbackTime;
+
+      // Only seek if the lesson is not completed and there's a meaningful saved time.
+      if (savedTime && savedTime > 1 && !completedLessons.has(currentLesson.id)) {
+        videoRef.current.currentTime = savedTime;
+      }
     }
   };
 
@@ -224,6 +286,16 @@ const CoursePlayer = () => {
     try {
       // Use the new centralized service to update progress
       await updateActivityProgress(user.uid, 'lessons', currentLesson.id, { completed: true });
+
+      // Clear the "last viewed" lesson so the player advances to the next uncompleted one.
+      await clearLastViewedLesson(user.uid, courseId);
+
+      // Also clear the last viewed lesson from local state to ensure the UI updates correctly.
+      setUserOverallProgress(prev => {
+        const newProgress = { ...prev };
+        if (newProgress.lastViewedLesson) delete newProgress.lastViewedLesson[courseId];
+        return newProgress;
+      });
       
       // Manually update local state to trigger UI changes and advance to the next lesson
       setCompletedLessons(prev => new Set(prev).add(currentLesson.id));
@@ -303,7 +375,7 @@ const CoursePlayer = () => {
                     src={currentLesson.videoUrl} 
                     className="video-player" 
                     controls 
-                    onPlay={handlePlay} onPause={handlePause} onEnded={handleVideoEnded} 
+                    onPlay={handlePlay} onPause={handlePause} onEnded={handleVideoEnded} onLoadedMetadata={handleLoadedMetadata}
                     title={currentLesson.title} 
                   />
                 ) : (
@@ -329,7 +401,7 @@ const CoursePlayer = () => {
                   className="video-player"
                   controls
                   autoPlay
-                  onPlay={handlePlay} onPause={handlePause} onEnded={handleVideoEnded}
+                  onPlay={handlePlay} onPause={handlePause} onEnded={handleVideoEnded} onLoadedMetadata={handleLoadedMetadata}
                   title={`${currentLesson.title} - Part 2`}
                 />
               )}

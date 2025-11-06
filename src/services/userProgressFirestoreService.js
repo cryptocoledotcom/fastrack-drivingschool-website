@@ -81,105 +81,102 @@ export const deleteUserProgress = async (userId) => {
   }
 };
 
-/**
- * Records the start time of a lesson session for a user.
- * @param {string} userId The ID of the user.
- * @param {string} lessonId The unique ID of the lesson.
- * @returns {Promise<void>} A promise that resolves when the update is complete.
- */
-export const startLessonSession = async (userId, lessonId) => {
-  if (!userId || !lessonId) {
-    console.error("startLessonSession: userId and lessonId are required.");
-    return;
-  }
+export const initializeLesson = async (userId, lessonId) => {
+  if (!userId || !lessonId) return;
 
-  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const lessonRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const docSnap = await getDoc(lessonRef);
 
-  try {
-    // Use setDoc with merge: true to create the document/fields if they don't exist.
-    // We set currentSessionStartTime to serverTimestamp() and ensure cumulativeTimeSpentSeconds exists.
-    await setDoc(
-      userProgressRef,
-      {
-        lessons: { [lessonId]: { timeSpentSeconds: increment(0), lastAccessed: serverTimestamp(), currentSessionStartTime: serverTimestamp() } }
-      },
-      { merge: true }
-    );
-    console.log(`User ${userId} started session for lesson ${lessonId}`);
-  } catch (error) {
-    console.error(`Error starting lesson session for ${lessonId}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Records the end time of a lesson session, calculates duration, and adds it to cumulative time spent.
- * @param {string} userId The ID of the user.
- * @param {string} lessonId The unique ID of the lesson.
- * @param {number} sessionStartTimeMs The client-side timestamp (milliseconds) when the session started.
- * @returns {Promise<void>} A promise that resolves when the update is complete.
- */
-export const endLessonSession = async (userId, lessonId, sessionStartTimeMs) => {
-  if (!userId || !lessonId || !sessionStartTimeMs) {
-    console.error("endLessonSession: userId, lessonId, and sessionStartTimeMs are required.");
-    return;
-  }
-
-  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
-
-  try {
-    // Fetch the document to get the server's current time for accurate duration calculation
-    // and to ensure we only update if currentSessionStartTime matches.
-    const docSnap = await getDoc(userProgressRef);
-    if (docSnap.exists()) {
-      const progressData = docSnap.data();
-      const lessonProgress = progressData.lessons?.[lessonId];
-
-      if (lessonProgress && lessonProgress.currentSessionStartTime) {
-        const durationSeconds = Math.floor((Date.now() - sessionStartTimeMs) / 1000);
-        await updateDoc(userProgressRef, {
-          [`lessons.${lessonId}.timeSpentSeconds`]: increment(durationSeconds),
-          [`lessons.${lessonId}.currentSessionStartTime`]: deleteField(), // Remove the start time
-        });
-        console.log(`User ${userId} ended session for lesson ${lessonId}. Added ${durationSeconds} seconds.`);
-      }
+  // Only set timeStart if the lesson progress doesn't exist or lacks a timeStart field.
+  if (!docSnap.exists() || !docSnap.data().lessons?.[lessonId]?.timeStart) {
+    try {
+      await setDoc(lessonRef, {
+        lessons: { [lessonId]: { timeStart: serverTimestamp() } }
+      }, { merge: true });
+    } catch (error) {
+      console.error(`Error initializing lesson ${lessonId}:`, error);
     }
-  } catch (error) {
-    console.error(`Error ending lesson session for ${lessonId}:`, error);
-    throw error;
   }
 };
 
 /**
- * Atomically increments the time spent on a lesson for a user.
+ * Atomically increments the total time spent on a lesson.
  * @param {string} userId The ID of the user.
  * @param {string} lessonId The unique ID of the lesson.
  * @param {number} secondsToAdd The number of seconds to add to the total time spent.
- * @returns {Promise<void>} A promise that resolves when the update is complete.
  */
-export const incrementTimeOnLesson = async (userId, lessonId, secondsToAdd) => {
-  if (!userId || !lessonId || typeof secondsToAdd !== 'number' || secondsToAdd <= 0) {
+export const addLessonTime = async (userId, lessonId, secondsToAdd) => {
+  if (!userId || !lessonId || !secondsToAdd || secondsToAdd <= 0) {
+    return;
+  }
+  try {
+    const lessonRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+    await updateDoc(lessonRef, {
+      [`lessons.${lessonId}.timeSpentSeconds`]: increment(secondsToAdd),
+      [`lessons.${lessonId}.lastAccessed`]: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error(`Error incrementing time for lesson ${lessonId}:`, error);
+  }
+};
+
+/**
+ * Saves the last known video playback time for a specific lesson.
+ * @param {string} userId The ID of the user.
+ * @param {string} lessonId The unique ID of the lesson.
+ * @param {number} playbackTime The current time of the video in seconds.
+ */
+export const saveLessonPlaybackTime = async (userId, lessonId, playbackTime) => {
+  if (!userId || !lessonId || typeof playbackTime !== 'number') {
+    return;
+  }
+  try {
+    const lessonRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+    await updateDoc(lessonRef, {
+      [`lessons.${lessonId}.playbackTime`]: playbackTime,
+      [`lessons.${lessonId}.lastAccessed`]: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error(`Error saving playback time for lesson ${lessonId}:`, error);
+  }
+};
+
+/**
+ * Sets the last viewed lesson for a specific course for a user.
+ * @param {string} userId The ID of the user.
+ * @param {string} courseId The ID of the course.
+ * @param {string} lessonId The ID of the lesson being viewed.
+ * @returns {Promise<void>}
+ */
+export const setLastViewedLesson = async (userId, courseId, lessonId) => {
+  if (!userId || !courseId || !lessonId) {
+    return; // Don't proceed if essential info is missing
+  }
+
+  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  try {
+    // Use merge:true to update/create the lastViewedLesson field without overwriting other progress
+    await setDoc(userProgressRef, { lastViewedLesson: { [courseId]: lessonId } }, { merge: true });
+  } catch (error) {
+    console.error(`Error setting last viewed lesson for course ${courseId}:`, error);
+  }
+};
+
+/**
+ * Clears the last viewed lesson for a specific course for a user.
+ * @param {string} userId The ID of the user.
+ * @param {string} courseId The ID of the course.
+ * @returns {Promise<void>}
+ */
+export const clearLastViewedLesson = async (userId, courseId) => {
+  if (!userId || !courseId) {
     return;
   }
 
+  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
   try {
-    // Use setDoc with merge to safely increment the time and update the timestamp.
-    // This will create the lesson entry if it doesn't exist. `timeStart` is only set on the first increment.
-    const lessonRef = doc(db, USER_PROGRESS_COLLECTION, userId);
-    const docSnap = await getDoc(lessonRef);
-    const lessonData = docSnap.data()?.lessons?.[lessonId];
-
-    const updateData = {
-      [`lessons.${lessonId}.timeSpentSeconds`]: increment(secondsToAdd),
-      [`lessons.${lessonId}.lastAccessed`]: serverTimestamp() // Keep this to track recent activity
-    };
-
-    if (!lessonData?.timeStart) {
-      updateData[`lessons.${lessonId}.timeStart`] = serverTimestamp();
-    }
-
-    await updateDoc(lessonRef, updateData);
+    await updateDoc(userProgressRef, { [`lastViewedLesson.${courseId}`]: deleteField() });
   } catch (error) {
-    console.error(`Error incrementing time for lesson ${lessonId}:`, error);
+    console.error(`Error clearing last viewed lesson for course ${courseId}:`, error);
   }
 };
