@@ -8,7 +8,7 @@ function Contact() {
   const { showNotification } = useNotification();
   const contactInfo = {
     phone: '(412) 974-8858',
-    email: 'colebowersock@gmail.com',
+    email: 'info@fastrackdrive.com',
     address: '45122 Oak Dr., Wellsville, OH, USA',
   };
 

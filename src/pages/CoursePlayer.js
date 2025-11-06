@@ -147,7 +147,7 @@ const CoursePlayer = () => {
     } else {
       setCurrentLesson(null);
     }
-  }, [modules, lessons, completedLessons, loading, user, userOverallProgress]); // Added user and userOverallProgress to dependencies
+  }, [modules, lessons, completedLessons, loading, user, userOverallProgress, courseId]); // Added courseId to dependencies
 
   // Effect to reset video state when the lesson changes
   useEffect(() => {
@@ -177,10 +177,11 @@ const CoursePlayer = () => {
 
   // Effect to save the last viewed lesson
   useEffect(() => {
-    if (user && courseId && currentLesson) {
+    // Only update the last viewed lesson if the lesson is NOT already completed.
+    if (user && courseId && currentLesson && !completedLessons.has(currentLesson.id)) {
       setLastViewedLesson(user.uid, courseId, currentLesson.id);
     }
-  }, [user, courseId, currentLesson]);
+  }, [user, courseId, currentLesson, completedLessons]);
 
   // Effect to handle saving progress when the user closes the tab/browser
   useEffect(() => {
