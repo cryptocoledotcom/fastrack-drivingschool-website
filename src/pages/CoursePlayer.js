@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import YouTube from "react-youtube";
+import YouTube from "react-youtube"; // Ensure YouTube is imported if used
 import { db } from "../Firebase";
 import {
   collection,
@@ -11,9 +11,9 @@ import {
   limit,
   getDoc,
 } from "firebase/firestore";
-import { useAuth } from "./Auth/AuthContext"; // Corrected path to AuthContext
+import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
-import { getUserProgress, updateActivityProgress, addLessonTime, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson } from "../services/userProgressFirestoreService";
+import { getUserProgress, updateActivityProgress, addLessonTime, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson, addCourseAuditLog } from "../services/userProgressFirestoreService";
 
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
@@ -34,10 +34,11 @@ const CoursePlayer = () => {
   const [lessons, setLessons] = useState({});
   const [currentLesson, setCurrentLesson] = useState(null);
   const [completedLessons, setCompletedLessons] = useState(new Set());
-  const [userCourseId, setUserCourseId] = useState(null);
-  const [userOverallProgress, setUserOverallProgress] = useState(null); // New state for overall user progress
+  const [userCourseId, setUserCourseId] = useState(null); // User's enrollment ID for the course
+  const [userOverallProgress, setUserOverallProgress] = useState(null); // Overall user progress object
   const [loading, setLoading] = useState(true);
-  const activeTimeRef = useRef({ startTime: 0, accumulatedSeconds: 0 });
+  const activeTimeRef = useRef(0); // Accumulated active seconds for the current lesson
+  const lastActivityTimestampRef = useRef(Date.now()); // Timestamp of last detected user activity
   const lastPlaybackTimeRef = useRef(0); // New ref to store the last known playback time
   const [error, setError] = useState("");
   const [courseCompleted, setCourseCompleted] = useState(false);
@@ -148,7 +149,7 @@ const CoursePlayer = () => {
       setCurrentLesson(null);
     }
   }, [modules, lessons, completedLessons, loading, user, userOverallProgress, courseId]); // Added courseId to dependencies
-
+  
   // Effect to reset video state when the lesson changes
   useEffect(() => {
     // Determine initial video stage based on the new lesson's video URLs
@@ -157,8 +158,10 @@ const CoursePlayer = () => {
     } else {
       setVideoStage('no_video_for_lesson');
     }
-    // Reset time tracking on lesson change
-    activeTimeRef.current = { startTime: 0, accumulatedSeconds: 0 };
+    // Reset time tracking state on lesson change
+    activeTimeRef.current = 0;
+    lastActivityTimestampRef.current = Date.now();
+    isTrackingActiveTimeRef.current = false; // Pause tracking until activity resumes
   }, [currentLesson]);
 
   // Effect to listen for video time updates
@@ -175,6 +178,133 @@ const CoursePlayer = () => {
     return () => videoElement?.removeEventListener('timeupdate', handleTimeUpdate);
   }, [currentLesson, videoStage]); // Re-attach listener if the lesson or video stage changes
 
+  // New refs and state for active time tracking and idle detection
+  const isTrackingActiveTimeRef = useRef(false); // Controls if time should accumulate
+  const [isIdleModalOpen, setIsIdleModalOpen] = useState(false); // State for idle modal visibility
+
+  // Effect to track general user activity (mouse, keyboard, touch)
+  useEffect(() => {
+    const handleActivity = () => {
+      lastActivityTimestampRef.current = Date.now();
+      // If idle modal is open and user becomes active, close it and resume tracking
+      if (isIdleModalOpen) {
+        setIsIdleModalOpen(false);
+        isTrackingActiveTimeRef.current = true;
+      }
+    };
+
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keypress', handleActivity);
+    window.addEventListener('touchstart', handleActivity); // For touch devices
+
+    return () => {
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keypress', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
+  }, [isIdleModalOpen]); // Re-attach if modal state changes to ensure it can be dismissed
+
+  // Effect for periodic time saving and idle detection
+  useEffect(() => {
+    if (!user || !currentLesson || completedLessons.has(currentLesson.id)) {
+      isTrackingActiveTimeRef.current = false;
+      return;
+    }
+
+    // Initialize tracking state for the new lesson
+    isTrackingActiveTimeRef.current = true;
+    lastActivityTimestampRef.current = Date.now(); // Reset last activity for new lesson
+    activeTimeRef.current = 0; // Reset accumulated seconds for new lesson
+
+    const IDLE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+    const SAVE_INTERVAL_MS = 30 * 1000; // Save every 30 seconds
+
+    let intervalId;
+    let idleTimeoutId;
+
+    const startIdleTimer = () => {
+      clearTimeout(idleTimeoutId);
+      idleTimeoutId = setTimeout(() => {
+        if (!document.hidden) { // Only show idle modal if tab is visible
+          setIsIdleModalOpen(true);
+          isTrackingActiveTimeRef.current = false; // Pause tracking when idle
+        } else {
+          // If tab is hidden, just pause tracking without modal
+          isTrackingActiveTimeRef.current = false;
+        }
+      }, IDLE_THRESHOLD_MS);
+    };
+
+    const saveAndCheckIdle = () => {
+      if (isTrackingActiveTimeRef.current && !document.hidden) {
+        const now = Date.now();
+        const elapsedSinceLastActivity = now - lastActivityTimestampRef.current;
+
+        if (elapsedSinceLastActivity >= IDLE_THRESHOLD_MS) {
+          // User has been idle for too long
+          isTrackingActiveTimeRef.current = false;
+          setIsIdleModalOpen(true); // Show modal if tab is visible
+        } else {
+          // Accumulate and save active time
+          const secondsSinceLastSave = Math.floor((now - lastActivityTimestampRef.current) / 1000); // Calculate based on last activity
+          if (secondsSinceLastSave > 0) {
+            activeTimeRef.current += secondsSinceLastSave;
+            addLessonTime(user.uid, currentLesson.id, secondsSinceLastSave);
+            lastActivityTimestampRef.current = now; // Update last activity after saving
+          }
+          startIdleTimer(); // Reset idle timer
+        }
+      } else {
+        // If not tracking (e.g., tab hidden, idle modal open), ensure idle timer is off
+        clearTimeout(idleTimeoutId);
+      }
+    };
+
+    intervalId = setInterval(saveAndCheckIdle, SAVE_INTERVAL_MS);
+    startIdleTimer(); // Start idle timer immediately
+
+    // Handle visibility changes
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Tab became hidden, pause tracking and save any accumulated time
+        if (isTrackingActiveTimeRef.current) {
+          const secondsToAccumulate = Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000);
+          if (secondsToAccumulate > 0) {
+            activeTimeRef.current += secondsToAccumulate;
+            addLessonTime(user.uid, currentLesson.id, secondsToAccumulate);
+          }
+        }
+        isTrackingActiveTimeRef.current = false;
+        clearTimeout(idleTimeoutId);
+        setIsIdleModalOpen(false); // Hide modal if tab becomes hidden
+      } else {
+        // Tab became visible, resume tracking if not idle
+        lastActivityTimestampRef.current = Date.now();
+        if (!isIdleModalOpen) { // Only resume if idle modal is not explicitly open
+          isTrackingActiveTimeRef.current = true;
+          startIdleTimer();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(idleTimeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Final save on cleanup
+      if (user && currentLesson && !completedLessons.has(currentLesson.id) && isTrackingActiveTimeRef.current) {
+        const secondsToAccumulate = Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000);
+        if (secondsToAccumulate > 0) {
+          activeTimeRef.current += secondsToAccumulate;
+          addLessonTime(user.uid, currentLesson.id, secondsToAccumulate);
+        }
+      }
+      activeTimeRef.current = 0; // Clear accumulated seconds on unmount
+    };
+  }, [user, currentLesson, completedLessons, isIdleModalOpen]); // Re-run if these dependencies change
+
   // Effect to save the last viewed lesson
   useEffect(() => {
     // Only update the last viewed lesson if the lesson is NOT already completed.
@@ -188,18 +318,13 @@ const CoursePlayer = () => {
     const handleBeforeUnload = (event) => {
       // This logic runs just before the page is unloaded
       if (user && currentLesson && !completedLessons.has(currentLesson.id) && videoRef.current) {
-        // We can't use async operations here, but we can try to send a synchronous beacon
-        // This is a "best-effort" save for tab closes.
-        const playbackTime = videoRef.current.currentTime;
-        const totalSeconds = Math.floor(activeTimeRef.current.accumulatedSeconds + ((activeTimeRef.current.startTime > 0) ? (Date.now() - activeTimeRef.current.startTime) / 1000 : 0));
-
-        // For a more reliable save on page exit, we could use navigator.sendBeacon if we had an HTTP endpoint.
-        // For now, we'll rely on the onPause and internal navigation cleanup, and this is a fallback.
-        // The most reliable save will happen in the onPause/onNavigate away logic below.
-        saveLessonPlaybackTime(user.uid, currentLesson.id, playbackTime);
-        if (totalSeconds > 0) {
-          addLessonTime(user.uid, currentLesson.id, totalSeconds);
+        // Ensure any remaining accumulated time is saved
+        const secondsToAccumulate = Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000);
+        if (secondsToAccumulate > 0) {
+          activeTimeRef.current += secondsToAccumulate;
+          addLessonTime(user.uid, currentLesson.id, secondsToAccumulate);
         }
+        saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current.currentTime);
       }
     };
 
@@ -216,17 +341,40 @@ const CoursePlayer = () => {
 
     // Cleanup function: This runs when the lesson changes or the component unmounts.
     return () => {
-      // When the user navigates away, calculate any remaining active time and save it.
-      if (activeTimeRef.current.startTime > 0) {
-        const elapsedSeconds = (Date.now() - activeTimeRef.current.startTime) / 1000;
-        activeTimeRef.current.accumulatedSeconds += elapsedSeconds;
-      }
-
-      const totalSeconds = Math.floor(activeTimeRef.current.accumulatedSeconds);
-      addLessonTime(user.uid, currentLesson.id, totalSeconds);
+      // Ensure any remaining accumulated time is saved
+      const totalSeconds = Math.floor(activeTimeRef.current); // activeTimeRef.current already holds accumulated
       saveLessonPlaybackTime(user.uid, currentLesson.id, lastPlaybackTimeRef.current);
+      if (totalSeconds > 0) {
+        addLessonTime(user.uid, currentLesson.id, totalSeconds);
+      }
+      activeTimeRef.current = 0; // Clear accumulated seconds on unmount
     };
   }, [user, currentLesson, completedLessons]);
+
+  // Effect to handle course completion and generate audit log
+  useEffect(() => {
+    if (courseCompleted && user && course) {
+      // Fetch total time spent for the course
+      const fetchTotalTimeAndLog = async () => {
+        try {
+          const progress = await getUserProgress(user.uid);
+          let totalTimeSeconds = 0;
+          if (progress && progress.lessons) {
+            for (const lessonId in progress.lessons) {
+              if (progress.lessons[lessonId].timeSpentSeconds) {
+                totalTimeSeconds += progress.lessons[lessonId].timeSpentSeconds;
+              }
+            }
+          }
+          await addCourseAuditLog(user.uid, course.id, totalTimeSeconds);
+          console.log(`Audit log generated for course ${course.id} for user ${user.uid}. Total time: ${totalTimeSeconds}s`);
+        } catch (err) {
+          console.error("Error generating audit log:", err);
+        }
+      };
+      fetchTotalTimeAndLog();
+    }
+  }, [courseCompleted, user, course]);
 
   // This function is called when the video ends
   const handleVideoEnded = () => {
@@ -234,35 +382,33 @@ const CoursePlayer = () => {
     if (videoStage === 'primary_playing' && currentLesson.videoUrl2) {
       setVideoStage('primary_ended_awaiting_continue');
     } else {
-      // This covers:
-      // 1. Primary video ended, no secondary video.
-      // 2. Secondary video ended.
+      // This covers: 1. Primary video ended, no secondary video. 2. Secondary video ended.
       setVideoStage('lesson_videos_complete');
     }
   };
 
   const handlePlay = () => {
-    if (activeTimeRef.current.startTime === 0) {
-      activeTimeRef.current.startTime = Date.now();
+    lastActivityTimestampRef.current = Date.now();
+    if (!document.hidden && !isIdleModalOpen) {
+      isTrackingActiveTimeRef.current = true;
     }
   };
 
   const handlePause = () => {
-    if (activeTimeRef.current.startTime > 0) {
-      const elapsedSeconds = (Date.now() - activeTimeRef.current.startTime) / 1000;
-      activeTimeRef.current.accumulatedSeconds += elapsedSeconds;
-      activeTimeRef.current.startTime = 0; // Reset start time
-
-      // Only save time if the lesson is NOT completed
-      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
-        const totalSeconds = Math.floor(activeTimeRef.current.accumulatedSeconds);
-        if (totalSeconds > 0) {
-          addLessonTime(user.uid, currentLesson.id, totalSeconds);
-          activeTimeRef.current.accumulatedSeconds -= totalSeconds; // Keep the remainder
-        }
-        saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current?.currentTime || 0);
+    if (isTrackingActiveTimeRef.current) {
+      const secondsToAccumulate = Math.floor((Date.now() - lastActivityTimestampRef.current) / 1000);
+      if (secondsToAccumulate > 0) {
+        activeTimeRef.current += secondsToAccumulate;
+        addLessonTime(user.uid, currentLesson.id, secondsToAccumulate);
       }
     }
+    isTrackingActiveTimeRef.current = false; // Pause tracking on video pause
+
+    // Only save playback time if the lesson is NOT completed
+    if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
+      saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current?.currentTime || 0);
+    }
+    activeTimeRef.current = 0; // Clear accumulated seconds after saving
   };
 
 
@@ -318,6 +464,23 @@ const CoursePlayer = () => {
   if (error) {
     return <div className="error-container">{error}</div>;
   }
+
+  // Idle Modal UI
+  const idleModal = isIdleModalOpen && (
+    <div className="idle-modal-overlay">
+      <div className="idle-modal-content">
+        <h2>Are you still there?</h2>
+        <p>Your session has been paused due to inactivity.</p>
+        <button onClick={() => {
+          setIsIdleModalOpen(false);
+          isTrackingActiveTimeRef.current = true;
+          lastActivityTimestampRef.current = Date.now(); // Resume tracking
+        }} className="btn btn-primary">
+          I'm still here
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="course-player-container">
@@ -438,6 +601,7 @@ const CoursePlayer = () => {
           </div>
         )}
       </main>
+      {idleModal}
     </div>
   );
 }

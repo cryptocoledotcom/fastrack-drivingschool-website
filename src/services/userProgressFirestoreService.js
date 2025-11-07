@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc, deleteDoc, increment, deleteField } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc, deleteDoc, increment, deleteField, addDoc, collection } from 'firebase/firestore';
 import { db } from '../Firebase'; // Corrected path to your Firebase config
 
 const USER_PROGRESS_COLLECTION = 'userProgress';
@@ -178,5 +178,31 @@ export const clearLastViewedLesson = async (userId, courseId) => {
     await updateDoc(userProgressRef, { [`lastViewedLesson.${courseId}`]: deleteField() });
   } catch (error) {
     console.error(`Error clearing last viewed lesson for course ${courseId}:`, error);
+  }
+};
+
+/**
+ * Adds an audit log entry for course completion.
+ * @param {string} userId The ID of the user.
+ * @param {string} courseId The ID of the completed course.
+ * @param {number} totalTimeSeconds The total active time spent on the course.
+ * @returns {Promise<void>} A promise that resolves when the audit log is added.
+ */
+export const addCourseAuditLog = async (userId, courseId, totalTimeSeconds) => {
+  if (!userId || !courseId || typeof totalTimeSeconds !== 'number') {
+    console.error("addCourseAuditLog: userId, courseId, and totalTimeSeconds are required.");
+    return;
+  }
+  try {
+    await addDoc(collection(db, 'timeAudits'), { // New 'timeAudits' collection
+      userId,
+      courseId,
+      totalTimeSeconds,
+      completionDate: serverTimestamp(),
+    });
+    console.log(`Course audit log added for user ${userId}, course ${courseId}.`);
+  } catch (error) {
+    console.error("Error adding course audit log:", error);
+    throw error;
   }
 };
