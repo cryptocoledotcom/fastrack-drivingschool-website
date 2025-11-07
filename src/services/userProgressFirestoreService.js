@@ -22,7 +22,7 @@ export const getUserProgress = async (userId) => {
     } else {
       console.log(`No progress found for user: ${userId}. Initializing new progress.`);
       // Create an empty document to prevent future errors on update.
-      const initialProgress = { quizzes: {}, tests: {}, lessons: {} };
+      const initialProgress = { quizzes: {}, tests: {}, lessons: {}, dailyTimeSpent: {} }; // Added dailyTimeSpent
       await setDoc(userProgressRef, initialProgress);
       return initialProgress;
     }
@@ -100,20 +100,61 @@ export const initializeLesson = async (userId, lessonId) => {
 };
 
 /**
+ * Helper to get the current "learning day" key (YYYY-MM-DD) based on a 12 PM local time reset.
+ * @param {Date} date The date to get the key for.
+ * @returns {string} The formatted date string (YYYY-MM-DD).
+ */
+const getLearningDayKey = (date) => {
+  const localDate = new Date(date); // Use local time
+  // If current time is before 12 PM, the "learning day" is the previous calendar day.
+  if (localDate.getHours() < 12) {
+    localDate.setDate(localDate.getDate() - 1);
+  }
+  return localDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+};
+
+/**
+ * Retrieves the total time spent by a user for the current "learning day".
+ * A "learning day" starts at 12 PM local time and ends at 11:59:59 AM the next day.
+ * @param {string} userId The ID of the user.
+ * @returns {Promise<number>} The total seconds spent today, or 0 if no data.
+ */
+export const getTimeSpentToday = async (userId) => {
+  if (!userId) return 0;
+
+  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  try {
+    const docSnap = await getDoc(userProgressRef);
+    if (docSnap.exists()) {
+      const dailyTimeSpent = docSnap.data().dailyTimeSpent || {};
+      const todayKey = getLearningDayKey(new Date());
+      return dailyTimeSpent[todayKey] || 0;
+    }
+    return 0;
+  } catch (error) {
+    console.error("Error getting time spent today:", error);
+    throw error;
+  }
+};
+
+/**
  * Atomically increments the total time spent on a lesson.
  * @param {string} userId The ID of the user.
  * @param {string} lessonId The unique ID of the lesson.
  * @param {number} secondsToAdd The number of seconds to add to the total time spent.
  */
-export const addLessonTime = async (userId, lessonId, secondsToAdd) => {
+export const addLessonTime = async (userId, lessonId, secondsToAdd) => { // Renamed from addLessonTime to track daily
   if (!userId || !lessonId || !secondsToAdd || secondsToAdd <= 0) {
     return;
   }
   try {
     const lessonRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+    const todayKey = getLearningDayKey(new Date()); // Get the current learning day key
+
     await updateDoc(lessonRef, {
       [`lessons.${lessonId}.timeSpentSeconds`]: increment(secondsToAdd),
       [`lessons.${lessonId}.lastAccessed`]: serverTimestamp(),
+      [`dailyTimeSpent.${todayKey}`]: increment(secondsToAdd), // New: Increment daily time spent
     });
   } catch (error) {
     console.error(`Error incrementing time for lesson ${lessonId}:`, error);
@@ -212,7 +253,7 @@ export const addCourseAuditLog = async (userId, courseId, totalTimeSeconds) => {
  * @param {string} text The string to hash.
  * @returns {Promise<string>} The hexadecimal representation of the hash.
  */
-const hashText = async (text) => {
+export const hashText = async (text) => {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
   const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
@@ -246,3 +287,43 @@ export const setSecurityQuestions = async (userId, questions) => {
     throw error;
   }
 };
+
+/**
+ * Retrieves the user's saved security questions.
+ * @param {string} userId The ID of the user.
+ * @returns {Promise<Array<Object>|null>} An array of question objects or null if not found.
+ */
+export const getSecurityQuestions = async (userId) => {
+  if (!userId) return null;
+  const securityProfileRef = doc(db, `users/${userId}/securityProfile`, 'questions');
+  try {
+    const docSnap = await getDoc(securityProfileRef);
+    if (docSnap.exists()) {
+      return docSnap.data().questions;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting security questions:", error);
+    throw error;
+  }
+};
+
+/**
+ * Logs an identity verification attempt.
+ * @param {string} userId The ID of the user.
+ * @param {object} logData The data to log (e.g., { question, wasSuccessful, attemptsFailed }).
+ * @returns {Promise<void>}
+ */
+export const logVerificationAttempt = async (userId, logData) => {
+  if (!userId || !logData) return;
+  try {
+    const verificationLogRef = collection(db, `users/${userId}/verificationLog`);
+    await addDoc(verificationLogRef, {
+      ...logData,
+      timestamp: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error("Error logging verification attempt:", error);
+    throw error;
+  }
+}
