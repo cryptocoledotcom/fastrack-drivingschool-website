@@ -21,24 +21,25 @@
   text-decoration: underline;
 }
 
-.video-player-wrapper {
-  position: relative;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio */
-  height: 0;
-  overflow: hidden;
+/* This more specific selector will only target video wrappers on the homepage */
+.home-container .video-player-wrapper {
   max-width: 900px; /* Or your desired max width */
   margin: auto;
-  background: #000;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  /* Reset the properties that force a 16:9 aspect ratio */
+  position: static;
+  height: auto;
+  padding-bottom: 0;
+  background: transparent;
 }
 
-.video-player-wrapper video {
-  position: absolute;
-  top: 0;
-  left: 0;
+/* Target the video element itself on the homepage */
+.home-container .video-player-wrapper video {
   width: 100%;
-  height: 100%;
+  height: auto; /* Let the video's own aspect ratio determine the height */
+  position: static;
+  display: block; /* Removes any extra space below the video */
 }
 
 .video-section-btn {
