@@ -15,6 +15,7 @@ import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
 import { getUserProgress, updateActivityProgress, addLessonTime, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson, addCourseAuditLog, getTimeSpentToday } from "../services/userProgressFirestoreService";
 import { useIdleTimer } from '../hooks/useIdleTimer'; // Import the new custom hook
+import { useTimeTracker } from '../hooks/useTimeTracker'; // Import our new time tracker hook
 
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
@@ -38,7 +39,6 @@ const CoursePlayer = () => {
   const [userCourseId, setUserCourseId] = useState(null); // User's enrollment ID for the course
   const [userOverallProgress, setUserOverallProgress] = useState(null); // Overall user progress object
   const [loading, setLoading] = useState(true);
-  const activeTimeSegmentStartRef = useRef(0); // Timestamp for the start of the current active time segment
   const lastPlaybackTimeRef = useRef(0); // New ref to store the last known playback time
   const [error, setError] = useState("");
   const [isTimeLimitReached, setIsTimeLimitReached] = useState(false); // New state for 4-hour limit
@@ -160,8 +160,6 @@ const CoursePlayer = () => {
     } else {
       setVideoStage('no_video_for_lesson');
     }
-    // Reset time tracking state on lesson change
-    activeTimeSegmentStartRef.current = 0;
   }, [currentLesson]);
 
   // Effect to listen for video time updates
@@ -203,7 +201,6 @@ const CoursePlayer = () => {
         if (videoRef.current && !videoRef.current.paused) {
           videoRef.current.pause();
         }
-        isTrackingActiveTimeRef.current = false; // Ensure time tracking is off
       } else {
         setIsTimeLimitReached(false);
         setResumeTimeMessage('');
@@ -216,19 +213,10 @@ const CoursePlayer = () => {
 
   const lastActivityTimestampRef = useRef(Date.now()); // Re-introduce for idle detection
 
-  // Helper function to save any accumulated active time
-  const saveCurrentActiveTime = useCallback(() => {
-    if (user && currentLesson && activeTimeSegmentStartRef.current > 0) {
-      const secondsToAccumulate = Math.floor((Date.now() - activeTimeSegmentStartRef.current) / 1000);
-      if (secondsToAccumulate > 0) {
-        addLessonTime(user.uid, currentLesson.id, secondsToAccumulate);
-      }
-    }
-    // Reset the segment start time. If still tracking, start a new segment from now.
-    activeTimeSegmentStartRef.current = isTrackingActiveTimeRef.current ? Date.now() : 0; 
-  }, [user, currentLesson]);
-  // New refs and state for active time tracking and idle detection
-  const isTrackingActiveTimeRef = useRef(false); // Ref to control if time should accumulate
+  // --- START: TIME TRACKING LOGIC ---
+  const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons);
+  // --- END: TIME TRACKING LOGIC ---
+
   const [isIdleModalOpen, setIsIdleModalOpen] = useState(false); // State for idle modal visibility
 
   // --- START: NEW, CLEAN IDLE DETECTION ---
@@ -247,23 +235,6 @@ const CoursePlayer = () => {
   useIdleTimer(handleIdle, 1 * 60 * 1000);
   // --- END: NEW, CLEAN IDLE DETECTION ---
 
-  // Effect for periodic time saving (this is separate from idle detection)
-  useEffect(() => {
-    const SAVE_INTERVAL_MS = 30 * 1000; // Save every 30 seconds
-
-    const periodicTimeSave = () => {
-      if (isTrackingActiveTimeRef.current && !document.hidden) {
-        saveCurrentActiveTime();
-      }
-    };
-
-    const timeSaveIntervalId = setInterval(periodicTimeSave, SAVE_INTERVAL_MS);
-
-    return () => {
-      clearInterval(timeSaveIntervalId);
-    };
-  }, [saveCurrentActiveTime]);
-
   // Effect to save the last viewed lesson
   useEffect(() => {
     // Only update the last viewed lesson if the lesson is NOT already completed.
@@ -277,27 +248,27 @@ const CoursePlayer = () => {
   useEffect(() => {
     const handleBeforeUnload = (event) => {
       // This logic runs just before the page is unloaded. It must be synchronous.
-      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
-        saveCurrentActiveTime(); // Save any pending active time
+      if (user && currentLesson && !completedLessons.has(currentLesson.id) && videoRef.current) {
+        saveOnExit(); // Save any pending active time
         saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current.currentTime);
       }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [user, currentLesson, completedLessons, saveCurrentActiveTime]);
+  }, [user, currentLesson, completedLessons, saveOnExit]);
 
   // Effect to save final progress on cleanup (when navigating away within the app)
   useEffect(() => {
     // Cleanup function: This runs when the lesson changes or the component unmounts.
     return () => {
       // Ensure any remaining accumulated time is saved
-      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
-        saveCurrentActiveTime(); // Save any pending active time
+      if (user && currentLesson) {
+        saveOnExit();
         saveLessonPlaybackTime(user.uid, currentLesson.id, lastPlaybackTimeRef.current);
       }
     };
-  }, [user, currentLesson, completedLessons, saveCurrentActiveTime]);
+  }, [user, currentLesson, saveOnExit]);
 
   // Effect to handle course completion and generate audit log
   useEffect(() => {
@@ -334,22 +305,6 @@ const CoursePlayer = () => {
       setVideoStage('lesson_videos_complete');
     }
   };
-
-  const handlePlay = () => {
-    if (!isTimeLimitReached) {
-      isTrackingActiveTimeRef.current = true;
-      activeTimeSegmentStartRef.current = Date.now();
-    }
-  };
-
-  const handlePause = () => {
-    saveCurrentActiveTime(); // Save any pending active time
-    isTrackingActiveTimeRef.current = false; // Pause tracking on video pause
-    if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
-      saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current?.currentTime || 0);
-    }
-  };
-
 
   const handleLoadedMetadata = () => {
     if (user && currentLesson && videoRef.current) {
