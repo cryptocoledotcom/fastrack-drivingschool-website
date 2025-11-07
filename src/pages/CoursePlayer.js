@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import YouTube from "react-youtube"; // Ensure YouTube is imported if used
+import YouTube from "react-youtube";
 import { db } from "../Firebase";
 import {
   collection,
@@ -13,9 +13,9 @@ import {
 } from "firebase/firestore";
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
-import { getUserProgress, updateActivityProgress, addLessonTime, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson, addCourseAuditLog, getTimeSpentToday } from "../services/userProgressFirestoreService";
-import { useIdleTimer } from '../hooks/useIdleTimer'; // Import the new custom hook
-import { useTimeTracker } from '../hooks/useTimeTracker'; // Import our new time tracker hook
+import { getUserProgress, updateActivityProgress, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson, addCourseAuditLog, getTimeSpentToday } from "../services/userProgressFirestoreService";
+import { useIdleTimer } from '../hooks/useIdleTimer';
+import { useTimeTracker } from '../hooks/useTimeTracker';
 
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
@@ -36,18 +36,33 @@ const CoursePlayer = () => {
   const [lessons, setLessons] = useState({});
   const [currentLesson, setCurrentLesson] = useState(null);
   const [completedLessons, setCompletedLessons] = useState(new Set());
-  const [userCourseId, setUserCourseId] = useState(null); // User's enrollment ID for the course
-  const [userOverallProgress, setUserOverallProgress] = useState(null); // Overall user progress object
+  const [userCourseId, setUserCourseId] = useState(null);
+  const [userOverallProgress, setUserOverallProgress] = useState(null);
   const [loading, setLoading] = useState(true);
-  const lastPlaybackTimeRef = useRef(0); // New ref to store the last known playback time
+  const lastPlaybackTimeRef = useRef(0);
   const [error, setError] = useState("");
-  const [isTimeLimitReached, setIsTimeLimitReached] = useState(false); // New state for 4-hour limit
-  const [resumeTimeMessage, setResumeTimeMessage] = useState(''); // New state for resume message
+  const [isTimeLimitReached, setIsTimeLimitReached] = useState(false);
+  const [resumeTimeMessage, setResumeTimeMessage] = useState('');
   const [courseCompleted, setCourseCompleted] = useState(false);
-  const [videoStage, setVideoStage] = useState('primary_playing'); // 'primary_playing', 'primary_ended_awaiting_continue', 'secondary_playing', 'lesson_videos_complete', 'no_video_for_lesson'
+  const [videoStage, setVideoStage] = useState('primary_playing');
   const videoRef = useRef(null);
 
-  // Effect to find the user's specific course enrollment
+  // --- START: TIME TRACKING & IDLE LOGIC ---
+  const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons);
+  const [isIdleModalOpen, setIsIdleModalOpen] = useState(false);
+
+  const handleIdle = useCallback(() => {
+    if (!isIdleModalOpen && !isTimeLimitReached) {
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+      }
+      setIsIdleModalOpen(true);
+    }
+  }, [isIdleModalOpen, isTimeLimitReached]);
+
+  useIdleTimer(handleIdle, 5 * 60 * 1000);
+  // --- END: TIME TRACKING & IDLE LOGIC ---
+
   useEffect(() => {
     const findUserCourse = async () => {
       if (!user || !courseId) return;
@@ -64,7 +79,6 @@ const CoursePlayer = () => {
     findUserCourse();
   }, [user, courseId]);
 
-  // Effect to fetch all course content (modules and lessons)
   useEffect(() => {
     if (!user || !userCourseId) return;
     const fetchCourseContent = async () => {
@@ -100,14 +114,12 @@ const CoursePlayer = () => {
     fetchCourseContent();
   }, [courseId, user, userCourseId]);
 
-  // Effect to fetch user's lesson progress from the new userProgress collection
   useEffect(() => {
     const fetchProgress = async () => {
       if (!user || !userCourseId) return;
-
       try {
         const progress = await getUserProgress(user.uid);
-        setUserOverallProgress(progress); // Store the full progress object
+        setUserOverallProgress(progress);
         if (progress && progress.lessons) {
           const completedLessonIds = Object.keys(progress.lessons).filter(lessonId => progress.lessons[lessonId].completed);
           setCompletedLessons(new Set(completedLessonIds));
@@ -117,13 +129,11 @@ const CoursePlayer = () => {
         setError("Failed to load your learning progress.");
       }
     };
-
     fetchProgress();
-  }, [user, userCourseId]); // Reruns if the user or course context changes
+  }, [user, userCourseId]);
 
-  // Main logic effect to determine the current lesson
   useEffect(() => {
-    if (loading || modules.length === 0 || Object.keys(lessons).length === 0 || !userOverallProgress) return; // Wait for userOverallProgress
+    if (loading || modules.length === 0 || Object.keys(lessons).length === 0 || !userOverallProgress) return;
 
     const allLessonsCount = modules.reduce((acc, m) => acc + m.lessonOrder.length, 0);
     if (allLessonsCount > 0 && completedLessons.size === allLessonsCount) {
@@ -132,29 +142,21 @@ const CoursePlayer = () => {
       return;
     }
 
-    // --- Resume Logic ---
-    // 1. Check if there's a last-viewed lesson for this specific course.
     const lastViewedLessonId = userOverallProgress.lastViewedLesson?.[courseId];
-
-    // 2. If so, use it. Otherwise, find the first uncompleted lesson.
     const nextLessonId = (lastViewedLessonId && lessons[lastViewedLessonId]) 
       ? lastViewedLessonId 
       : findFirstUncompletedLesson(modules, completedLessons) || modules[0]?.lessonOrder[0];
-    // --- End Resume Logic ---
     
     if (nextLessonId && lessons[nextLessonId]) {
       const newLesson = { ...lessons[nextLessonId] };
       setCurrentLesson(newLesson);
-      initializeLesson(user.uid, newLesson.id); // Set timeStart if it's the first time
-
+      initializeLesson(user.uid, newLesson.id);
     } else {
       setCurrentLesson(null);
     }
-  }, [modules, lessons, completedLessons, loading, user, userOverallProgress, courseId]); // Added courseId to dependencies
+  }, [modules, lessons, completedLessons, loading, user, userOverallProgress, courseId]);
   
-  // Effect to reset video state when the lesson changes
   useEffect(() => {
-    // Determine initial video stage based on the new lesson's video URLs
     if (currentLesson?.videoUrl) {
       setVideoStage('primary_playing');
     } else {
@@ -162,7 +164,6 @@ const CoursePlayer = () => {
     }
   }, [currentLesson]);
 
-  // Effect to listen for video time updates
   useEffect(() => {
     const videoElement = videoRef.current;
     const handleTimeUpdate = () => {
@@ -170,34 +171,27 @@ const CoursePlayer = () => {
         lastPlaybackTimeRef.current = videoElement.currentTime;
       }
     };
-
     videoElement?.addEventListener('timeupdate', handleTimeUpdate);
-
     return () => videoElement?.removeEventListener('timeupdate', handleTimeUpdate);
-  }, [currentLesson, videoStage]); // Re-attach listener if the lesson or video stage changes
+  }, [currentLesson, videoStage]);
 
-  // New useEffect to check 4-hour limit
   useEffect(() => {
     if (!user || !currentLesson || completedLessons.has(currentLesson.id)) {
       return;
     }
-
     const checkDailyTimeLimit = async () => {
       const totalTimeTodaySeconds = await getTimeSpentToday(user.uid);
       const FOUR_HOURS_IN_SECONDS = 4 * 60 * 60;
-
       if (totalTimeTodaySeconds >= FOUR_HOURS_IN_SECONDS) {
         setIsTimeLimitReached(true);
-        // Calculate next resume time: 12 PM local time of the next calendar day
         const now = new Date();
         const nextLearningDay = new Date(now);
-        if (now.getHours() >= 12) { // If it's 12 PM or later, resume tomorrow at 12 PM
+        if (now.getHours() >= 12) {
           nextLearningDay.setDate(now.getDate() + 1);
         }
-        nextLearningDay.setHours(12, 0, 0, 0); // Set to 12:00:00 PM
+        nextLearningDay.setHours(12, 0, 0, 0);
         setResumeTimeMessage(`You have completed the state maximum of 4 hours per 24-hour block. You may continue your next learning journey after ${nextLearningDay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on ${nextLearningDay.toLocaleDateString()}.`);
         
-        // Pause video and stop time tracking if limit is reached
         if (videoRef.current && !videoRef.current.paused) {
           videoRef.current.pause();
         }
@@ -206,74 +200,39 @@ const CoursePlayer = () => {
         setResumeTimeMessage('');
       }
     };
-    checkDailyTimeLimit(); // Check immediately
-    const interval = setInterval(checkDailyTimeLimit, 5 * 60 * 1000); // Re-check every 5 minutes
+    checkDailyTimeLimit();
+    const interval = setInterval(checkDailyTimeLimit, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [user, currentLesson, completedLessons]); // Dependencies: user, currentLesson, completedLessons
+  }, [user, currentLesson, completedLessons]);
 
-  const lastActivityTimestampRef = useRef(Date.now()); // Re-introduce for idle detection
-
-  // --- START: TIME TRACKING LOGIC ---
-  const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons);
-  // --- END: TIME TRACKING LOGIC ---
-
-  const [isIdleModalOpen, setIsIdleModalOpen] = useState(false); // State for idle modal visibility
-
-  // --- START: NEW, CLEAN IDLE DETECTION ---
-  const handleIdle = useCallback(() => {
-    // Only trigger if the modal isn't already open and the time limit hasn't been reached
-    if (!isIdleModalOpen && !isTimeLimitReached) {
-      // If the video is playing, pause it. This will trigger handlePause, which saves any active time.
-      if (videoRef.current && !videoRef.current.paused) {
-        videoRef.current.pause();
-      }
-      setIsIdleModalOpen(true);
-    }
-  }, [isIdleModalOpen, isTimeLimitReached]);
-
-  // Use the custom idle timer hook. 1 minute for testing.
-  useIdleTimer(handleIdle, 1 * 60 * 1000);
-  // --- END: NEW, CLEAN IDLE DETECTION ---
-
-  // Effect to save the last viewed lesson
   useEffect(() => {
-    // Only update the last viewed lesson if the lesson is NOT already completed.
     if (user && courseId && currentLesson && !completedLessons.has(currentLesson.id)) {
       setLastViewedLesson(user.uid, courseId, currentLesson.id);
-      // No time tracking here, just last viewed lesson
     }
   }, [user, courseId, currentLesson, completedLessons]);
 
-  // Effect to handle saving progress when the user closes the tab/browser
   useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      // This logic runs just before the page is unloaded. It must be synchronous.
+    const handleBeforeUnload = () => {
       if (user && currentLesson && !completedLessons.has(currentLesson.id) && videoRef.current) {
-        saveOnExit(); // Save any pending active time
+        saveOnExit();
         saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current.currentTime);
       }
     };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [user, currentLesson, completedLessons, saveOnExit]);
 
-  // Effect to save final progress on cleanup (when navigating away within the app)
   useEffect(() => {
-    // Cleanup function: This runs when the lesson changes or the component unmounts.
     return () => {
-      // Ensure any remaining accumulated time is saved
-      if (user && currentLesson) {
+      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
         saveOnExit();
         saveLessonPlaybackTime(user.uid, currentLesson.id, lastPlaybackTimeRef.current);
       }
     };
-  }, [user, currentLesson, saveOnExit]);
+  }, [user, currentLesson, completedLessons, saveOnExit]);
 
-  // Effect to handle course completion and generate audit log
   useEffect(() => {
     if (courseCompleted && user && course) {
-      // Fetch total time spent for the course
       const fetchTotalTimeAndLog = async () => {
         try {
           const progress = await getUserProgress(user.uid);
@@ -286,7 +245,6 @@ const CoursePlayer = () => {
             }
           }
           await addCourseAuditLog(user.uid, course.id, totalTimeSeconds);
-          console.log(`Audit log generated for course ${course.id} for user ${user.uid}. Total time: ${totalTimeSeconds}s`);
         } catch (err) {
           console.error("Error generating audit log:", err);
         }
@@ -295,13 +253,11 @@ const CoursePlayer = () => {
     }
   }, [courseCompleted, user, course]);
 
-  // This function is called when the video ends
   const handleVideoEnded = () => {
-    handlePause(); // Accumulate final time when video ends
+    handlePause();
     if (videoStage === 'primary_playing' && currentLesson.videoUrl2) {
       setVideoStage('primary_ended_awaiting_continue');
     } else {
-      // This covers: 1. Primary video ended, no secondary video. 2. Secondary video ended.
       setVideoStage('lesson_videos_complete');
     }
   };
@@ -310,8 +266,6 @@ const CoursePlayer = () => {
     if (user && currentLesson && videoRef.current) {
       const lessonProgress = userOverallProgress?.lessons?.[currentLesson.id];
       const savedTime = lessonProgress?.playbackTime;
-
-      // Only seek if the lesson is not completed and there's a meaningful saved time.
       if (savedTime && savedTime > 1 && !completedLessons.has(currentLesson.id)) {
         videoRef.current.currentTime = savedTime;
       }
@@ -325,20 +279,13 @@ const CoursePlayer = () => {
   const handleCompleteLesson = async () => {
     if (!user || !currentLesson) return;
     try {
-      // Use the new centralized service to update progress
       await updateActivityProgress(user.uid, 'lessons', currentLesson.id, { completed: true });
-
-      // Clear the "last viewed" lesson so the player advances to the next uncompleted one.
       await clearLastViewedLesson(user.uid, courseId);
-
-      // Also clear the last viewed lesson from local state to ensure the UI updates correctly.
       setUserOverallProgress(prev => {
         const newProgress = { ...prev };
         if (newProgress.lastViewedLesson) delete newProgress.lastViewedLesson[courseId];
         return newProgress;
       });
-      
-      // Manually update local state to trigger UI changes and advance to the next lesson
       setCompletedLessons(prev => new Set(prev).add(currentLesson.id));
     } catch (err) {
       console.error("Error saving progress:", err);
@@ -350,7 +297,6 @@ const CoursePlayer = () => {
     setVideoStage('secondary_playing');
   };
 
-
   if (loading) {
     return <div className="loading-container">Loading Course...</div>;
   }
@@ -359,7 +305,6 @@ const CoursePlayer = () => {
     return <div className="error-container">{error}</div>;
   }
 
-  // Idle Modal UI
   const idleModal = isIdleModalOpen && (
     <div className="idle-modal-overlay">
       <div className="idle-modal-content">
@@ -367,12 +312,25 @@ const CoursePlayer = () => {
         <p>Inactivity for another 5mins will result in a logout.</p>
         <button onClick={() => {
           setIsIdleModalOpen(false);
-          // The click itself is an activity, which the useIdleTimer hook will automatically detect and reset its timer.
           if (videoRef.current) {
-            videoRef.current.play(); // Automatically resume video
+            videoRef.current.play();
           }
         }} className="btn btn-primary">
           I'm still here
+        </button>
+      </div>
+    </div>
+  );
+
+  const timeLimitModal = isTimeLimitReached && (
+    <div className="time-limit-modal-overlay">
+      <div className="time-limit-modal-content">
+        <h2>Time Limit Reached</h2>
+        <p>{resumeTimeMessage}</p>
+        <button onClick={() => {
+          setIsTimeLimitReached(false);
+        }} className="btn btn-primary">
+          OK
         </button>
       </div>
     </div>
@@ -396,11 +354,10 @@ const CoursePlayer = () => {
                                 key={lesson.id} 
                                 className={`${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
                                 onClick={() => {
-                                  // This is the key fix: reset all state when a lesson is clicked.
                                   const newLesson = lessons[lessonId];
                                   if (newLesson) {
                                     setCurrentLesson(newLesson);
-                                    setVideoStage('primary'); // Explicitly reset the video stage here.
+                                    setVideoStage('primary');
                                   }
                                 }}
                             >
@@ -427,7 +384,6 @@ const CoursePlayer = () => {
           <div>
             <h2>{currentLesson.title}</h2>
             <div className="video-player-wrapper">
-              {/* Primary Video Player (YouTube or self-hosted) */}
               {videoStage === 'primary_playing' && currentLesson.videoUrl && (
                 currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
                   <video 
@@ -443,7 +399,6 @@ const CoursePlayer = () => {
                 )
               )}
 
-              {/* "Continue to Next Video" button */}
               {videoStage === 'primary_ended_awaiting_continue' && currentLesson.videoUrl2 && (
                 <div className="video-placeholder">
                   <p>You've completed the first part of this lesson.</p>
@@ -453,7 +408,6 @@ const CoursePlayer = () => {
                 </div>
               )}
 
-              {/* Secondary Video Player (self-hosted) */}
               {videoStage === 'secondary_playing' && currentLesson.videoUrl2 && (
                 <video
                   ref={videoRef}
@@ -466,7 +420,6 @@ const CoursePlayer = () => {
                 />
               )}
 
-              {/* Placeholder for after all videos are watched, or if there are no videos at all */}
               {(videoStage === 'lesson_videos_complete' || videoStage === 'no_video_for_lesson') && (
                 <div className="video-placeholder">
                   {currentLesson.videoUrl ? "Video(s) complete." : "No video for this lesson."}
@@ -498,6 +451,7 @@ const CoursePlayer = () => {
         )}
       </main>
       {idleModal}
+      {timeLimitModal}
     </div>
   );
 }
