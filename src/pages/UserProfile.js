@@ -1,14 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "./Auth/AuthContext";
 import "./UserProfile.css";
-import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../Firebase";
 import { useNotification } from "../components/Notification/NotificationContext";
 
 import MyCourses from "../components/MyCourses";
 import UserProgressDashboard from "./UserProgressDashboard";
-import { deleteUserProgress } from "../services/userProgressFirestoreService";
+import { deleteUserProgress, setSecurityQuestions as saveSecurityQuestionsToFirestore } from "../services/userProgressFirestoreService";
 import formatPhoneNumber from "../utils/formatPhoneNumber";
+
+const predefinedQuestions = [
+  "What was your first pet's name?",
+  "What was the model of your first car?",
+  "In what city were you born?",
+  "What is your mother's maiden name?",
+  "What is the name of your favorite childhood friend?",
+];
 
 const UserProfile = () => {
   const { user, logout } = useAuth();
@@ -16,6 +24,7 @@ const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [editingSecurity, setEditingSecurity] = useState(false);
   const [form, setForm] = useState({
     firstName: "",
     middleName: "",
@@ -28,10 +37,18 @@ const UserProfile = () => {
     zip: "",
     phone: "",
   });
+  const [securityQuestions, setSecurityQuestions] = useState([]); // Stores the questions fetched from Firestore (question text only)
   const [profileError, setProfileError] = useState("");
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  // Helper to create a blank security form
+  const createBlankSecurityForm = useCallback(() => {
+    return predefinedQuestions.slice(0, 3).map(q => ({ question: q, answer: '' }));
+  }, []);
+
+  // securityForm will be initialized in an effect or when editing starts
+  const [securityForm, setSecurityForm] = useState([]);
+  
+  const fetchProfile = useCallback(async () => {
       setProfileError("");
       if (user) {
         try {
@@ -52,18 +69,51 @@ const UserProfile = () => {
               zip: address.zip || "",
               phone: data.phone || "",
             });
+            setEditing(false); // Profile exists, so not in editing mode by default
           } else {
-            setProfileError("Profile not found. Please complete your registration.");
+            // If profile doesn't exist, they need to fill it out.
+            setEditing(true);
+          }
+
+          // Fetch security questions
+          const securityDoc = await getDoc(doc(db, `users/${user.uid}/securityProfile`, 'questions'));
+          if (securityDoc.exists()) {
+            const questionsData = securityDoc.data().questions;
+            if (Array.isArray(questionsData)) {
+              // Store just the question text from fetched questions
+              setSecurityQuestions(questionsData.map(q => ({ question: q.question })));
+            } else {
+              console.error("Firestore 'questions' field is not an array for user:", user.uid, questionsData);
+              setSecurityQuestions([]); // Fallback to empty array if data is malformed
+            }
+            setEditingSecurity(false); // Questions exist, so don't show edit form by default
+          } else {
+            // If security questions don't exist, they need to set them.
+            setSecurityQuestions([]); // No saved questions
+            setEditingSecurity(true); // Questions don't exist, so show edit form
           }
         } catch (err) {
           setProfileError("Error loading profile: " + err.message);
         }
       }
       setLoading(false);
-    };
+    }, [user, createBlankSecurityForm]);
 
+  // Effect to initialize securityForm when editingSecurity changes or securityQuestions are loaded
+  // This ensures that when the edit form is opened, it's pre-filled with current questions or blank ones.
+  useEffect(() => {
+    if (editingSecurity) { // Only run if we are in editing mode
+      if (securityQuestions && securityQuestions.length > 0) {
+        setSecurityForm(securityQuestions.map(q => ({ question: q.question, answer: '' }))); // Clear answers for security
+      } else {
+        setSecurityForm(createBlankSecurityForm());
+      }
+    }
+  }, [editingSecurity, securityQuestions, createBlankSecurityForm]); // Added createBlankSecurityForm to dependencies
+
+  useEffect(() => {
     fetchProfile();
-  }, [user]);
+  }, [fetchProfile]);
 
   if (!user) {
     return <div className="profile-container"><p>Please log in to view your profile.</p></div>;
@@ -128,6 +178,42 @@ const UserProfile = () => {
       showNotification("Error updating profile: " + err.message, "error");
       setEditing(true);
       console.error("Profile update error:", err);
+    }
+  };
+
+  const handleSecurityChange = (index, field, value) => {
+    const newForm = [...securityForm];
+    newForm[index][field] = value;
+    setSecurityForm(newForm);
+  };
+
+  const handleEditSecurityQuestions = () => {
+    setEditingSecurity(true);
+    // The useEffect above will now handle populating securityForm
+  };
+
+  const handleCancelSecurityEdit = () => {
+    setEditingSecurity(false);
+    // When canceling, reset the securityForm to reflect the currently saved questions (without answers)
+    // or to its initial blank state if nothing was saved. We add Array.isArray for defensive programming.
+    setSecurityForm(Array.isArray(securityQuestions) && securityQuestions.length > 0 ? securityQuestions.map(q => ({ question: q.question, answer: '' })) : createBlankSecurityForm());
+  };
+
+  const handleSaveSecurityQuestions = async (e) => {
+    e.preventDefault();
+    const allAnswered = securityForm.every(q => q.answer.trim() !== '');
+    if (!allAnswered) {
+      showNotification("Please answer all three security questions.", "error");
+      return;
+    }
+
+    try {
+      await saveSecurityQuestionsToFirestore(user.uid, securityForm);
+      showNotification("Security questions saved successfully!", "success");
+      setEditingSecurity(false); // Exit editing mode
+      setSecurityQuestions(securityForm.map(q => ({ question: q.question }))); // Correctly update local state with question text only
+    } catch (err) {
+      showNotification("Error saving security questions. Please try again.", "error");
     }
   };
 
@@ -210,6 +296,50 @@ const UserProfile = () => {
         <button onClick={handleResetProgress} className="btn" style={{ marginLeft: '1rem', backgroundColor: '#ffc107' }}>Reset Progress (Test)</button>
         {/* --- End Temporary Test Button --- */}
       </div>
+
+      <div className="user-profile-section">
+        <h2>Security Questions</h2>
+        {editingSecurity ? (
+          <form className="auth-form" onSubmit={handleSaveSecurityQuestions}>
+            <p>Please select and answer three security questions. These will be used to verify your identity during the course.</p>
+            {securityForm.map((item, index) => (
+              <div key={index} style={{ marginBottom: "1rem" }}>
+                <label htmlFor={`question-${index}`}>Question {index + 1}:</label>
+                <select
+                  id={`question-${index}`}
+                  value={item.question}
+                  onChange={(e) => handleSecurityChange(index, 'question', e.target.value)}
+                  required
+                >
+                  {predefinedQuestions.map(q => (
+                    <option key={q} value={q}>{q}</option>
+                  ))}
+                </select>
+                <label htmlFor={`answer-${index}`} className="sr-only">Answer {index + 1}</label>
+                <input
+                  type="text"
+                  id={`answer-${index}`}
+                  placeholder="Your Answer"
+                  value={item.answer}
+                  onChange={(e) => handleSecurityChange(index, 'answer', e.target.value)}
+                  required
+                  autoComplete="off"
+                />
+              </div>
+            ))}
+            <button type="submit" className="btn btn-secondary" style={{ marginRight: "1rem" }}>Save Questions</button>
+            {securityQuestions.length > 0 && (
+              <button type="button" onClick={handleCancelSecurityEdit} className="btn">Cancel</button>
+            )}
+          </form>
+        ) : securityQuestions.length > 0 ? (
+          <div>
+            <p>Your security questions are set. You can edit them if needed.</p>
+            <button onClick={handleEditSecurityQuestions} className="btn btn-secondary">Edit Security Questions</button>
+          </div>
+        ) : <p>You have not set up your security questions yet.</p>}
+      </div>
+
       <div className="my-courses-container">
         <UserProgressDashboard />
         <MyCourses />

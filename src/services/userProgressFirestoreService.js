@@ -206,3 +206,43 @@ export const addCourseAuditLog = async (userId, courseId, totalTimeSeconds) => {
     throw error;
   }
 };
+
+/**
+ * Hashes a string using SHA-256.
+ * @param {string} text The string to hash.
+ * @returns {Promise<string>} The hexadecimal representation of the hash.
+ */
+const hashText = async (text) => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
+/**
+ * Saves the user's security questions and hashed answers.
+ * @param {string} userId The ID of the user.
+ * @param {Array<Object>} questions An array of question/answer objects.
+ * @returns {Promise<void>}
+ */
+export const setSecurityQuestions = async (userId, questions) => {
+  if (!userId || !questions || questions.length === 0) {
+    console.error("setSecurityQuestions: userId and questions are required.");
+    return;
+  }
+
+  const securityProfileRef = doc(db, `users/${userId}/securityProfile`, 'questions');
+
+  try {
+    const hashedQuestions = await Promise.all(questions.map(async (q) => ({
+      question: q.question,
+      answerHash: await hashText(q.answer.trim()),
+    })));
+
+    await setDoc(securityProfileRef, { questions: hashedQuestions });
+  } catch (error) {
+    console.error("Error setting security questions:", error);
+    throw error;
+  }
+};
