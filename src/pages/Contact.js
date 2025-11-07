@@ -57,13 +57,13 @@ function Contact() {
       <div className="contact-form-section">
         <form className="contact-form" onSubmit={handleSubmit}>
           <label htmlFor="name">Name</label>
-          <input type="text" id="name" placeholder="Your Name" value={formData.name} onChange={handleChange} required autocomplete="name" />
+          <input type="text" id="name" placeholder="Your Name" value={formData.name} onChange={handleChange} required autoComplete="name" />
           
           <label htmlFor="email">Email</label>
-          <input type="email" id="email" placeholder="Your Email" value={formData.email} onChange={handleChange} required autocomplete="email" />
+          <input type="email" id="email" placeholder="Your Email" value={formData.email} onChange={handleChange} required autoComplete="email" />
           
           <label htmlFor="message">Message</label>
-          <textarea id="message" placeholder="Your Message" rows="5" value={formData.message} onChange={handleChange} required autocomplete="off"></textarea>
+          <textarea id="message" placeholder="Your Message" rows="5" value={formData.message} onChange={handleChange} required autoComplete="off"></textarea>
           
           <button type="submit" className="btn btn-primary">Send Message</button>
         </form>
