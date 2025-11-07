@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import { db } from '../../Firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import './managetimeslots.css'; // Import the new CSS file
 
 const ManageTimeSlots = () => {
   const [date, setDate] = useState(new Date());

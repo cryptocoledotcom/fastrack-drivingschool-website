@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../Firebase';
 import { collection, getDocs, doc, writeBatch, getDoc } from 'firebase/firestore';
+import './ManageUserCourses.css'; // Import the new CSS file
 import { useNotification } from '../Notification/NotificationContext';
 
 const ManageUserCourses = () => {
@@ -120,7 +121,7 @@ const ManageUserCourses = () => {
   });
 
   return (
-    <div>
+    <div className="manage-user-courses-container">
       <h3>Manage User Courses</h3>
       <div className="user-search">
         <input

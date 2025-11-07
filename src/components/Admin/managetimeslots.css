@@ -1,0 +1,83 @@
+.manage-time-slots-container {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+}
+
+.manage-time-slots-container h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.time-slots-manager {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.time-slots-manager .react-calendar {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.125em;
+}
+
+.time-slots-manager .react-calendar__navigation button {
+    min-width: 44px;
+    background: none;
+}
+
+.time-slots-manager .react-calendar__month-view__days__day--weekend {
+    color: #d10000;
+}
+
+.time-slots-manager h4 {
+    margin-top: 0;
+    color: #555;
+}
+
+.time-slots-manager ul {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+}
+
+.time-slots-manager li {
+    background-color: #fff;
+    border: 1px solid #eee;
+    padding: 8px 10px;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.time-slots-manager .add-time-slot input[type="text"] {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+.time-slots-manager .add-time-slot button,
+.time-slots-manager .remove-button {
+    background-color: #007bff; /* Blue for add */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.time-slots-manager .remove-button {
+    background-color: #dc3545; /* Red for remove */
+    padding: 5px 10px;
+    font-size: 0.8rem;
+}

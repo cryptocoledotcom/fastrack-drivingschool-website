@@ -5,8 +5,8 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useNotification } from '../components/Notification/NotificationContext';
 import ManageTimeSlots from '../components/Admin/ManageTimeSlots';
 import ManageUserCourses from '../components/Admin/ManageUserCourses';
+import ViewAuditLogs from '../components/Admin/ViewAuditLogs';
 import { useAuth } from './Auth/AuthContext';
-import './Admin.css';
 
 const Admin = () => {
   const { showNotification } = useNotification();
@@ -122,6 +122,9 @@ const Admin = () => {
       </div>
       <div className="admin-section">
         <ManageUserCourses />
+      </div>
+      <div className="admin-section">
+        <ViewAuditLogs />
       </div>
 
       {/* New Course Content Management Section */}
