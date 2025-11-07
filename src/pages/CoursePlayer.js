@@ -14,6 +14,7 @@ import {
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
 import { getUserProgress, updateActivityProgress, addLessonTime, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson, addCourseAuditLog, getTimeSpentToday } from "../services/userProgressFirestoreService";
+import { useIdleTimer } from '../hooks/useIdleTimer'; // Import the new custom hook
 
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
@@ -37,7 +38,7 @@ const CoursePlayer = () => {
   const [userCourseId, setUserCourseId] = useState(null); // User's enrollment ID for the course
   const [userOverallProgress, setUserOverallProgress] = useState(null); // Overall user progress object
   const [loading, setLoading] = useState(true);
-  const activeTimeSegmentStartRef = useRef(0); // Timestamp for the start of the current active time segment.
+  const activeTimeSegmentStartRef = useRef(0); // Timestamp for the start of the current active time segment
   const lastPlaybackTimeRef = useRef(0); // New ref to store the last known playback time
   const [error, setError] = useState("");
   const [isTimeLimitReached, setIsTimeLimitReached] = useState(false); // New state for 4-hour limit
@@ -161,7 +162,6 @@ const CoursePlayer = () => {
     }
     // Reset time tracking state on lesson change
     activeTimeSegmentStartRef.current = 0;
-    isTrackingActiveTimeRef.current = false; // Pause tracking until activity resumes
   }, [currentLesson]);
 
   // Effect to listen for video time updates
@@ -214,6 +214,8 @@ const CoursePlayer = () => {
     return () => clearInterval(interval);
   }, [user, currentLesson, completedLessons]); // Dependencies: user, currentLesson, completedLessons
 
+  const lastActivityTimestampRef = useRef(Date.now()); // Re-introduce for idle detection
+
   // Helper function to save any accumulated active time
   const saveCurrentActiveTime = useCallback(() => {
     if (user && currentLesson && activeTimeSegmentStartRef.current > 0) {
@@ -222,121 +224,45 @@ const CoursePlayer = () => {
         addLessonTime(user.uid, currentLesson.id, secondsToAccumulate);
       }
     }
-    // Always reset the start time after saving to prevent double-counting.
-    activeTimeSegmentStartRef.current = isTrackingActiveTimeRef.current ? Date.now() : 0;
+    // Reset the segment start time. If still tracking, start a new segment from now.
+    activeTimeSegmentStartRef.current = isTrackingActiveTimeRef.current ? Date.now() : 0; 
   }, [user, currentLesson]);
   // New refs and state for active time tracking and idle detection
-  const isTrackingActiveTimeRef = useRef(false); // Controls if time should accumulate
+  const isTrackingActiveTimeRef = useRef(false); // Ref to control if time should accumulate
   const [isIdleModalOpen, setIsIdleModalOpen] = useState(false); // State for idle modal visibility
 
-  // Effect to track general user activity (mouse, keyboard, touch)
-  useEffect(() => {
-    const handleActivity = () => {
-      // If idle modal is open and user becomes active, close it and resume tracking
-      if (isIdleModalOpen) {
-        setIsIdleModalOpen(false);
-        isTrackingActiveTimeRef.current = true;
-        activeTimeSegmentStartRef.current = Date.now(); // Start tracking time again
+  // --- START: NEW, CLEAN IDLE DETECTION ---
+  const handleIdle = useCallback(() => {
+    // Only trigger if the modal isn't already open and the time limit hasn't been reached
+    if (!isIdleModalOpen && !isTimeLimitReached) {
+      // If the video is playing, pause it. This will trigger handlePause, which saves any active time.
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
       }
-      // If tracking is not active and the user is not idle, start tracking.
-      // This handles engagement for non-video lessons or before a video is played.
-      if (!isTrackingActiveTimeRef.current && !isIdleModalOpen && !isTimeLimitReached && !videoRef.current?.paused) {
-        isTrackingActiveTimeRef.current = true; // Start tracking
-        activeTimeSegmentStartRef.current = Date.now(); // Set a fresh start time
-      }
-    };
-
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('keypress', handleActivity);
-    window.addEventListener('touchstart', handleActivity); // For touch devices
-
-    return () => {
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keypress', handleActivity);
-      window.removeEventListener('touchstart', handleActivity);
-    };
-  }, [isIdleModalOpen]); // Re-attach if modal state changes to ensure it can be dismissed
-
-  // Effect for periodic time saving and idle detection
-  useEffect(() => {
-    if (!user || !currentLesson || completedLessons.has(currentLesson.id)) {
-      isTrackingActiveTimeRef.current = false;
-      return;
+      setIsIdleModalOpen(true);
     }
+  }, [isIdleModalOpen, isTimeLimitReached]);
 
-    // Do NOT start tracking immediately. Wait for user engagement.
-    isTrackingActiveTimeRef.current = false;
-    activeTimeSegmentStartRef.current = 0;
+  // Use the custom idle timer hook. 1 minute for testing.
+  useIdleTimer(handleIdle, 1 * 60 * 1000);
+  // --- END: NEW, CLEAN IDLE DETECTION ---
 
-    const IDLE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+  // Effect for periodic time saving (this is separate from idle detection)
+  useEffect(() => {
     const SAVE_INTERVAL_MS = 30 * 1000; // Save every 30 seconds
 
-    let intervalId;
-    let idleTimeoutId;
-
-    const startIdleTimer = () => {
-      clearTimeout(idleTimeoutId);
-      idleTimeoutId = setTimeout(() => {
-        if (!document.hidden) { // Only show idle modal if tab is visible
-          setIsIdleModalOpen(true);
-          isTrackingActiveTimeRef.current = false; // Pause tracking when idle
-        } else {
-          // If tab is hidden, just pause tracking without modal
-          isTrackingActiveTimeRef.current = false;
-        }
-      }, IDLE_THRESHOLD_MS);
-    };
-
-    const saveAndCheckIdle = () => {
+    const periodicTimeSave = () => {
       if (isTrackingActiveTimeRef.current && !document.hidden) {
-        const now = Date.now();
-        const elapsedSinceLastActivity = now - activeTimeSegmentStartRef.current;
-
-        if (elapsedSinceLastActivity >= IDLE_THRESHOLD_MS) {
-          // User has been idle for too long
-          isTrackingActiveTimeRef.current = false;
-          setIsIdleModalOpen(true); // Show modal if tab is visible
-        } else {
-          // Save any accumulated time since last check
-          saveCurrentActiveTime();
-          startIdleTimer(); // Reset idle timer
-        }
-      } else {
-        // If not tracking (e.g., tab hidden, idle modal open), ensure idle timer is off
-        clearTimeout(idleTimeoutId);
-      }
-    };
-
-    intervalId = setInterval(saveAndCheckIdle, SAVE_INTERVAL_MS);
-    startIdleTimer(); // Start idle timer immediately
-
-    // Handle visibility changes
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Tab became hidden, pause tracking and save any accumulated time
         saveCurrentActiveTime();
-        isTrackingActiveTimeRef.current = false;
-        clearTimeout(idleTimeoutId);
-        setIsIdleModalOpen(false); // Hide modal if tab becomes hidden
-      } else {
-        // Tab became visible, resume tracking if not idle
-        if (!isIdleModalOpen) { // Only resume if idle modal is not explicitly open
-          isTrackingActiveTimeRef.current = true;
-          startIdleTimer();
-        }
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange); // Dependency for useCallback
+    const timeSaveIntervalId = setInterval(periodicTimeSave, SAVE_INTERVAL_MS);
 
     return () => {
-      clearInterval(intervalId);
-      clearTimeout(idleTimeoutId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      // Final save on cleanup
-      saveCurrentActiveTime(); // Ensure any last bits of time are saved
+      clearInterval(timeSaveIntervalId);
     };
-  }, [user, currentLesson, completedLessons, isIdleModalOpen, saveCurrentActiveTime]); // Re-run if these dependencies change
+  }, [saveCurrentActiveTime]);
 
   // Effect to save the last viewed lesson
   useEffect(() => {
@@ -350,7 +276,7 @@ const CoursePlayer = () => {
   // Effect to handle saving progress when the user closes the tab/browser
   useEffect(() => {
     const handleBeforeUnload = (event) => {
-      // This logic runs just before the page is unloaded
+      // This logic runs just before the page is unloaded. It must be synchronous.
       if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
         saveCurrentActiveTime(); // Save any pending active time
         saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current.currentTime);
@@ -363,11 +289,10 @@ const CoursePlayer = () => {
 
   // Effect to save final progress on cleanup (when navigating away within the app)
   useEffect(() => {
-    // This effect is primarily for saving playback time on internal navigation.
     // Cleanup function: This runs when the lesson changes or the component unmounts.
     return () => {
       // Ensure any remaining accumulated time is saved
-      if (user && currentLesson) {
+      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
         saveCurrentActiveTime(); // Save any pending active time
         saveLessonPlaybackTime(user.uid, currentLesson.id, lastPlaybackTimeRef.current);
       }
@@ -484,11 +409,13 @@ const CoursePlayer = () => {
     <div className="idle-modal-overlay">
       <div className="idle-modal-content">
         <h2>Are you still there?</h2>
-        <p>Your session has been paused due to inactivity.</p>
+        <p>Inactivity for another 5mins will result in a logout.</p>
         <button onClick={() => {
           setIsIdleModalOpen(false);
-          isTrackingActiveTimeRef.current = true;
-          lastActivityTimestampRef.current = Date.now(); // Resume tracking
+          // The click itself is an activity, which the useIdleTimer hook will automatically detect and reset its timer.
+          if (videoRef.current) {
+            videoRef.current.play(); // Automatically resume video
+          }
         }} className="btn btn-primary">
           I'm still here
         </button>
