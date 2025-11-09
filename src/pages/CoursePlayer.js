@@ -48,6 +48,7 @@ const CoursePlayer = () => {
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [videoStage, setVideoStage] = useState('primary_playing');
   const videoRef = useRef(null);
+  const youtubePlayerRef = useRef(null); // New ref for the YouTube player
 
   // --- START: IDENTITY VERIFICATION HOOK ---
   const {
@@ -60,8 +61,14 @@ const CoursePlayer = () => {
     user,
     currentLesson,
     completedLessons,
-    onVerificationStart: () => videoRef.current?.pause(),
-    onVerificationSuccess: () => videoRef.current?.play(),
+    onVerificationStart: () => {
+      videoRef.current?.pause();
+      youtubePlayerRef.current?.pauseVideo();
+    },
+    onVerificationSuccess: () => {
+      videoRef.current?.play();
+      youtubePlayerRef.current?.playVideo();
+    },
     // onVerificationFail: () => logout(), // We can wire this up later
   });
   // --- END: IDENTITY VERIFICATION HOOK ---
@@ -73,8 +80,10 @@ const CoursePlayer = () => {
   const handleIdle = useCallback(() => {
     // Prevent idle modal if verification modal is already open
     if (!isIdleModalOpen && !isTimeLimitReached && !isVerificationModalOpen) {
-      if (videoRef.current && !videoRef.current.paused) {
+      if (videoRef.current && !videoRef.current.paused) { // For self-hosted videos
         videoRef.current.pause();
+      } else if (youtubePlayerRef.current && youtubePlayerRef.current.getPlayerState() === 1) { // For YouTube videos (1 = playing)
+        youtubePlayerRef.current.pauseVideo();
       }
       setIsIdleModalOpen(true);
     }
@@ -224,9 +233,9 @@ const CoursePlayer = () => {
         nextLearningDay.setHours(12, 0, 0, 0);
         setResumeTimeMessage(`You have completed the state maximum of 4 hours per 24-hour block. You may continue your next learning journey after ${nextLearningDay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on ${nextLearningDay.toLocaleDateString()}.`);
         
-        if (videoRef.current && !videoRef.current.paused) {
-          videoRef.current.pause();
-        }
+        // Pause both types of videos if the time limit is reached
+        videoRef.current?.pause();
+        youtubePlayerRef.current?.pauseVideo();
       } else {
         setIsTimeLimitReached(false);
         setResumeTimeMessage('');
@@ -258,7 +267,14 @@ const CoursePlayer = () => {
     return () => {
       if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
         saveOnExit();
-        saveLessonPlaybackTime(user.uid, currentLesson.id, lastPlaybackTimeRef.current);
+        // Save playback time for either video type on exit
+        let finalPlaybackTime = 0;
+        if (videoRef.current) {
+          finalPlaybackTime = lastPlaybackTimeRef.current;
+        } else if (youtubePlayerRef.current) {
+          finalPlaybackTime = youtubePlayerRef.current.getCurrentTime();
+        }
+        saveLessonPlaybackTime(user.uid, currentLesson.id, finalPlaybackTime);
       }
     };
   }, [user, currentLesson, completedLessons, saveOnExit]);
@@ -291,6 +307,16 @@ const CoursePlayer = () => {
       setVideoStage('primary_ended_awaiting_continue');
     } else {
       setVideoStage('lesson_videos_complete');
+    }
+  };
+
+  const handleYoutubeReady = (event) => {
+    youtubePlayerRef.current = event.target;
+    // Now that the player is ready, check for and seek to saved time
+    const lessonProgress = userOverallProgress?.lessons?.[currentLesson.id];
+    const savedTime = lessonProgress?.playbackTime;
+    if (savedTime && savedTime > 1 && !completedLessons.has(currentLesson.id)) {
+      youtubePlayerRef.current.seekTo(savedTime, true);
     }
   };
 
@@ -329,6 +355,23 @@ const CoursePlayer = () => {
     setVideoStage('secondary_playing');
   };
 
+  const handleYoutubeStateChange = (event) => {
+    // The event.data value corresponds to the player's state:
+    // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+    switch (event.data) {
+      case 1: // Playing
+        handlePlay();
+        break;
+      case 0: // Ended
+      case 2: // Paused
+        handlePause();
+        break;
+      default:
+        // Do nothing for other states like buffering, cued, etc.
+        break;
+    }
+  };
+
   if (loading) {
     return <div className="loading-container">Loading Course...</div>;
   }
@@ -344,9 +387,9 @@ const CoursePlayer = () => {
         <p>Inactivity for another 5mins will result in a logout.</p>
         <button onClick={() => {
           setIsIdleModalOpen(false);
-          if (videoRef.current) {
-            videoRef.current.play();
-          }
+          // Resume both types of videos
+          videoRef.current?.play();
+          youtubePlayerRef.current?.playVideo();
         }} className="btn btn-primary">
           I'm still here
         </button>
@@ -427,7 +470,12 @@ const CoursePlayer = () => {
                     title={currentLesson.title} 
                   />
                 ) : (
-                  <YouTube videoId={currentLesson.videoUrl} className="video-player" onEnd={handleVideoEnded} />
+                  <YouTube
+                    videoId={currentLesson.videoUrl}
+                    className="video-player"
+                    onReady={handleYoutubeReady}
+                    onEnd={handleVideoEnded}
+                    onStateChange={handleYoutubeStateChange} />
                 )
               )}
 
