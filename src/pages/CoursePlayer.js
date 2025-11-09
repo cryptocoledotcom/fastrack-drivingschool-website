@@ -16,6 +16,8 @@ import "./CoursePlayer.css";
 import { getUserProgress, updateActivityProgress, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson, addCourseAuditLog, getTimeSpentToday } from "../services/userProgressFirestoreService";
 import { useIdleTimer } from '../hooks/useIdleTimer';
 import { useTimeTracker } from '../hooks/useTimeTracker';
+import { useIdentityVerification } from '../hooks/useIdentityVerification';
+import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
@@ -47,18 +49,36 @@ const CoursePlayer = () => {
   const [videoStage, setVideoStage] = useState('primary_playing');
   const videoRef = useRef(null);
 
+  // --- START: IDENTITY VERIFICATION HOOK ---
+  const {
+    isVerificationModalOpen,
+    verificationQuestion,
+    verificationError,
+    verificationAttempts,
+    handleVerificationSubmit,
+  } = useIdentityVerification({
+    user,
+    currentLesson,
+    completedLessons,
+    onVerificationStart: () => videoRef.current?.pause(),
+    onVerificationSuccess: () => videoRef.current?.play(),
+    // onVerificationFail: () => logout(), // We can wire this up later
+  });
+  // --- END: IDENTITY VERIFICATION HOOK ---
+
   // --- START: TIME TRACKING & IDLE LOGIC ---
   const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons);
   const [isIdleModalOpen, setIsIdleModalOpen] = useState(false);
 
   const handleIdle = useCallback(() => {
-    if (!isIdleModalOpen && !isTimeLimitReached) {
+    // Prevent idle modal if verification modal is already open
+    if (!isIdleModalOpen && !isTimeLimitReached && !isVerificationModalOpen) {
       if (videoRef.current && !videoRef.current.paused) {
         videoRef.current.pause();
       }
       setIsIdleModalOpen(true);
     }
-  }, [isIdleModalOpen, isTimeLimitReached]);
+  }, [isIdleModalOpen, isTimeLimitReached, isVerificationModalOpen]);
 
   useIdleTimer(handleIdle, 5 * 60 * 1000);
   // --- END: TIME TRACKING & IDLE LOGIC ---
@@ -78,6 +98,21 @@ const CoursePlayer = () => {
     };
     findUserCourse();
   }, [user, courseId]);
+
+  const fetchProgress = useCallback(async () => {
+    if (!user || !userCourseId) return;
+    try {
+      const progress = await getUserProgress(user.uid);
+      setUserOverallProgress(progress);
+      if (progress && progress.lessons) {
+        const completedLessonIds = Object.keys(progress.lessons).filter(lessonId => progress.lessons[lessonId].completed);
+        setCompletedLessons(new Set(completedLessonIds));
+      }
+    } catch (err) {
+      console.error("Error fetching user progress:", err);
+      setError("Failed to load your learning progress.");
+    }
+  }, [user, userCourseId]);
 
   useEffect(() => {
     if (!user || !userCourseId) return;
@@ -115,22 +150,19 @@ const CoursePlayer = () => {
   }, [courseId, user, userCourseId]);
 
   useEffect(() => {
-    const fetchProgress = async () => {
-      if (!user || !userCourseId) return;
-      try {
-        const progress = await getUserProgress(user.uid);
-        setUserOverallProgress(progress);
-        if (progress && progress.lessons) {
-          const completedLessonIds = Object.keys(progress.lessons).filter(lessonId => progress.lessons[lessonId].completed);
-          setCompletedLessons(new Set(completedLessonIds));
-        }
-      } catch (err) {
-        console.error("Error fetching user progress:", err);
-        setError("Failed to load your learning progress.");
-      }
-    };
     fetchProgress();
-  }, [user, userCourseId]);
+
+    // Add a 'focus' event listener to refetch data when the user returns to this tab.
+    // This ensures that if they update their profile in another tab, the changes
+    // are reflected here, fixing the stale data issue.
+    const handleFocus = () => {
+      fetchProgress();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [fetchProgress]);
 
   useEffect(() => {
     if (loading || modules.length === 0 || Object.keys(lessons).length === 0 || !userOverallProgress) return;
@@ -452,6 +484,13 @@ const CoursePlayer = () => {
       </main>
       {idleModal}
       {timeLimitModal}
+      <IdentityVerificationModal
+        isOpen={isVerificationModalOpen}
+        question={verificationQuestion.question}
+        onSubmit={handleVerificationSubmit}
+        error={verificationError}
+        attemptsLeft={verificationAttempts}
+      />
     </div>
   );
 }

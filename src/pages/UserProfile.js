@@ -80,8 +80,8 @@ const UserProfile = () => {
           if (securityDoc.exists()) {
             const questionsData = securityDoc.data().questions;
             if (Array.isArray(questionsData)) {
-              // Store just the question text from fetched questions
-              setSecurityQuestions(questionsData.map(q => ({ question: q.question })));
+              // BUG FIX: Store the FULL question object, including the encrypted answer.
+              setSecurityQuestions(questionsData);
             } else {
               console.error("Firestore 'questions' field is not an array for user:", user.uid, questionsData);
               setSecurityQuestions([]); // Fallback to empty array if data is malformed
@@ -97,14 +97,16 @@ const UserProfile = () => {
         }
       }
       setLoading(false);
-    }, [user, createBlankSecurityForm]);
+    }, [user]);
 
   // Effect to initialize securityForm when editingSecurity changes or securityQuestions are loaded
   // This ensures that when the edit form is opened, it's pre-filled with current questions or blank ones.
   useEffect(() => {
     if (editingSecurity) { // Only run if we are in editing mode
       if (securityQuestions && securityQuestions.length > 0) {
-        setSecurityForm(securityQuestions.map(q => ({ question: q.question, answer: '' }))); // Clear answers for security
+        // When editing, populate the form with the questions, but leave the
+        // answer field blank for the user to type into.
+        setSecurityForm(securityQuestions.map(q => ({ question: q.question, answer: '' })));
       } else {
         setSecurityForm(createBlankSecurityForm());
       }
@@ -208,12 +210,16 @@ const UserProfile = () => {
     }
 
     try {
+      // The `saveSecurityQuestionsToFirestore` service function handles hashing internally.
+      // We just need to pass it the plain-text answers from the form.
       await saveSecurityQuestionsToFirestore(user.uid, securityForm);
       showNotification("Security questions saved successfully!", "success");
       setEditingSecurity(false); // Exit editing mode
-      setSecurityQuestions(securityForm.map(q => ({ question: q.question }))); // Correctly update local state with question text only
+      // Force a refetch to ensure the component state is perfectly in sync.
+      fetchProfile();
     } catch (err) {
       showNotification("Error saving security questions. Please try again.", "error");
+      console.error("Error saving security questions:", err);
     }
   };
 
@@ -334,7 +340,12 @@ const UserProfile = () => {
           </form>
         ) : securityQuestions.length > 0 ? (
           <div>
-            <p>Your security questions are set. You can edit them if needed.</p>
+            {/* BUG FIX: Display only the question text, not the encrypted answer */}
+            <ul>
+              {securityQuestions.map((q, index) => (
+                <li key={index}><em>{q.question}</em></li>
+              ))}
+            </ul>
             <button onClick={handleEditSecurityQuestions} className="btn btn-secondary">Edit Security Questions</button>
           </div>
         ) : <p>You have not set up your security questions yet.</p>}
