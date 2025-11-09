@@ -58,9 +58,8 @@ export const useIdentityVerification = ({ user, currentLesson, completedLessons,
       if (verificationIntervalRef.current) {
         clearInterval(verificationIntervalRef.current);
       }
-      // --- FOR TESTING: Set a short random interval (10-15 seconds) ---
-      const randomInterval = (Math.random() * (15 - 10) + 10) * 1000;
-      // --- FOR PRODUCTION: const randomInterval = (Math.random() * (40 - 20) + 20) * 60 * 1000;
+      // --- FOR PRODUCTION: Set a random interval between 20 and 40 minutes ---
+      const randomInterval = (Math.random() * (40 - 20) + 20) * 60 * 1000;
 
       verificationIntervalRef.current = setInterval(triggerVerification, randomInterval);
     };

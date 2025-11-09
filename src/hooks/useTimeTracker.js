@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
-import { addLessonTime } from '../services/userProgressFirestoreService';
+import { addLessonTime, saveLessonPlaybackTime } from '../services/userProgressFirestoreService';
 
 /**
  * A custom hook to manage active time tracking for a lesson.
@@ -7,9 +7,10 @@ import { addLessonTime } from '../services/userProgressFirestoreService';
  * @param {object} currentLesson - The current lesson object.
  * @param {boolean} isTimeLimitReached - A boolean indicating if the daily time limit is reached.
  * @param {Set<string>} completedLessons - A set of completed lesson IDs.
+ * @param {React.RefObject} playerRef - A ref to the VideoPlayer component instance.
  * @returns {object} An object containing handlePlay, handlePause, and saveOnExit functions.
  */
-export const useTimeTracker = (user, currentLesson, isTimeLimitReached, completedLessons) => {
+export const useTimeTracker = (user, currentLesson, isTimeLimitReached, completedLessons, playerRef) => {
   const activeTimeSegmentStartRef = useRef(0);
   const isTrackingActiveTimeRef = useRef(false);
 
@@ -20,10 +21,16 @@ export const useTimeTracker = (user, currentLesson, isTimeLimitReached, complete
       if (secondsToAccumulate > 0) {
         addLessonTime(user.uid, currentLesson.id, secondsToAccumulate);
       }
+
+      // Also save the current playback time periodically
+      const playbackTime = playerRef.current?.getCurrentTime();
+      if (playbackTime && playbackTime > 0) {
+        saveLessonPlaybackTime(user.uid, currentLesson.id, playbackTime);
+      }
     }
     // Reset the segment start time. If still tracking, start a new segment from now.
     activeTimeSegmentStartRef.current = isTrackingActiveTimeRef.current ? Date.now() : 0;
-  }, [user, currentLesson, completedLessons]);
+  }, [user, currentLesson, completedLessons, playerRef]);
 
   // Effect for periodic time saving every 30 seconds.
   useEffect(() => {

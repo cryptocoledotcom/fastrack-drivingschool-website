@@ -1,0 +1,66 @@
+.sidebar {
+  width: 300px;
+  background-color: var(--dark-gray-2);
+  padding: 1.5rem;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-color);
+  color: var(--light-gray-4);
+}
+
+.sidebar h1 {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+  color: var(--white);
+  border-bottom: 2px solid var(--primary-color);
+  padding-bottom: 0.5rem;
+}
+
+.module-section {
+  margin-bottom: 2rem;
+}
+
+.module-section h3 {
+  font-size: 1.1rem;
+  color: var(--light-gray-4);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.module-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.module-section li {
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.module-section li:hover {
+  background-color: var(--dark-gray-3);
+}
+
+.module-section li.active {
+  background-color: var(--primary-color-dark);
+  color: var(--white);
+  font-weight: bold;
+}
+
+.lesson-status-icon {
+  margin-right: 10px;
+}
+
+.module-section li .icon-check { display: none; }
+.module-section li.completed .icon-check { display: inline; color: var(--success-color); }
+.module-section li.completed .icon-box { display: none; }
+
+.lesson-title {
+  flex-grow: 1;
+}

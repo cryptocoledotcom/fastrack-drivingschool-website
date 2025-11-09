@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import YouTube from "react-youtube";
 import { db } from "../Firebase";
 import {
   collection,
@@ -18,6 +17,10 @@ import { useIdleTimer } from '../hooks/useIdleTimer';
 import { useTimeTracker } from '../hooks/useTimeTracker';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
+import IdleModal from '../components/modals/IdleModal';
+import VideoPlayer from '../components/VideoPlayer';
+import CourseSidebar from '../components/CourseSidebar';
+import TimeLimitModal from '../components/modals/TimeLimitModal';
 
 const findFirstUncompletedLesson = (modules, completedLessons) => {
   for (const module of modules) {
@@ -46,9 +49,8 @@ const CoursePlayer = () => {
   const [isTimeLimitReached, setIsTimeLimitReached] = useState(false);
   const [resumeTimeMessage, setResumeTimeMessage] = useState('');
   const [courseCompleted, setCourseCompleted] = useState(false);
-  const [videoStage, setVideoStage] = useState('primary_playing');
-  const videoRef = useRef(null);
-  const youtubePlayerRef = useRef(null); // New ref for the YouTube player
+  const [allVideosWatched, setAllVideosWatched] = useState(false);
+  const playerRef = useRef(null); // A single ref for the new VideoPlayer component
 
   // --- START: IDENTITY VERIFICATION HOOK ---
   const {
@@ -61,30 +63,20 @@ const CoursePlayer = () => {
     user,
     currentLesson,
     completedLessons,
-    onVerificationStart: () => {
-      videoRef.current?.pause();
-      youtubePlayerRef.current?.pauseVideo();
-    },
-    onVerificationSuccess: () => {
-      videoRef.current?.play();
-      youtubePlayerRef.current?.playVideo();
-    },
+    onVerificationStart: () => playerRef.current?.pause(),
+    onVerificationSuccess: () => playerRef.current?.play(),
     // onVerificationFail: () => logout(), // We can wire this up later
   });
   // --- END: IDENTITY VERIFICATION HOOK ---
 
   // --- START: TIME TRACKING & IDLE LOGIC ---
-  const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons);
+  const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons, playerRef);
   const [isIdleModalOpen, setIsIdleModalOpen] = useState(false);
 
   const handleIdle = useCallback(() => {
     // Prevent idle modal if verification modal is already open
     if (!isIdleModalOpen && !isTimeLimitReached && !isVerificationModalOpen) {
-      if (videoRef.current && !videoRef.current.paused) { // For self-hosted videos
-        videoRef.current.pause();
-      } else if (youtubePlayerRef.current && youtubePlayerRef.current.getPlayerState() === 1) { // For YouTube videos (1 = playing)
-        youtubePlayerRef.current.pauseVideo();
-      }
+      playerRef.current?.pause();
       setIsIdleModalOpen(true);
     }
   }, [isIdleModalOpen, isTimeLimitReached, isVerificationModalOpen]);
@@ -173,6 +165,21 @@ const CoursePlayer = () => {
     return () => window.removeEventListener('focus', handleFocus);
   }, [fetchProgress]);
 
+  // Effect to handle saving progress when the user closes the tab/browser
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // This logic runs just before the page is unloaded. It must be synchronous.
+      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
+        saveOnExit(); // Save any pending active time
+        const playbackTime = playerRef.current?.getCurrentTime();
+        if (playbackTime) saveLessonPlaybackTime(user.uid, currentLesson.id, playbackTime);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [user, currentLesson, completedLessons, saveOnExit]);
+
+  // Main logic effect to determine the current lesson
   useEffect(() => {
     if (loading || modules.length === 0 || Object.keys(lessons).length === 0 || !userOverallProgress) return;
 
@@ -189,32 +196,11 @@ const CoursePlayer = () => {
       : findFirstUncompletedLesson(modules, completedLessons) || modules[0]?.lessonOrder[0];
     
     if (nextLessonId && lessons[nextLessonId]) {
-      const newLesson = { ...lessons[nextLessonId] };
-      setCurrentLesson(newLesson);
-      initializeLesson(user.uid, newLesson.id);
+      setCurrentLesson({ ...lessons[nextLessonId] });
     } else {
       setCurrentLesson(null);
     }
   }, [modules, lessons, completedLessons, loading, user, userOverallProgress, courseId]);
-  
-  useEffect(() => {
-    if (currentLesson?.videoUrl) {
-      setVideoStage('primary_playing');
-    } else {
-      setVideoStage('no_video_for_lesson');
-    }
-  }, [currentLesson]);
-
-  useEffect(() => {
-    const videoElement = videoRef.current;
-    const handleTimeUpdate = () => {
-      if (videoElement) {
-        lastPlaybackTimeRef.current = videoElement.currentTime;
-      }
-    };
-    videoElement?.addEventListener('timeupdate', handleTimeUpdate);
-    return () => videoElement?.removeEventListener('timeupdate', handleTimeUpdate);
-  }, [currentLesson, videoStage]);
 
   useEffect(() => {
     if (!user || !currentLesson || completedLessons.has(currentLesson.id)) {
@@ -234,8 +220,7 @@ const CoursePlayer = () => {
         setResumeTimeMessage(`You have completed the state maximum of 4 hours per 24-hour block. You may continue your next learning journey after ${nextLearningDay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on ${nextLearningDay.toLocaleDateString()}.`);
         
         // Pause both types of videos if the time limit is reached
-        videoRef.current?.pause();
-        youtubePlayerRef.current?.pauseVideo();
+        playerRef.current?.pause();
       } else {
         setIsTimeLimitReached(false);
         setResumeTimeMessage('');
@@ -254,29 +239,14 @@ const CoursePlayer = () => {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (user && currentLesson && !completedLessons.has(currentLesson.id) && videoRef.current) {
+      // Use lastPlaybackTimeRef for synchronous exit events as videoRef.current might be null
+      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
         saveOnExit();
-        saveLessonPlaybackTime(user.uid, currentLesson.id, videoRef.current.currentTime);
+        saveLessonPlaybackTime(user.uid, currentLesson.id, lastPlaybackTimeRef.current);
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [user, currentLesson, completedLessons, saveOnExit]);
-
-  useEffect(() => {
-    return () => {
-      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
-        saveOnExit();
-        // Save playback time for either video type on exit
-        let finalPlaybackTime = 0;
-        if (videoRef.current) {
-          finalPlaybackTime = lastPlaybackTimeRef.current;
-        } else if (youtubePlayerRef.current) {
-          finalPlaybackTime = youtubePlayerRef.current.getCurrentTime();
-        }
-        saveLessonPlaybackTime(user.uid, currentLesson.id, finalPlaybackTime);
-      }
-    };
   }, [user, currentLesson, completedLessons, saveOnExit]);
 
   useEffect(() => {
@@ -301,39 +271,6 @@ const CoursePlayer = () => {
     }
   }, [courseCompleted, user, course]);
 
-  const handleVideoEnded = () => {
-    handlePause();
-    if (videoStage === 'primary_playing' && currentLesson.videoUrl2) {
-      setVideoStage('primary_ended_awaiting_continue');
-    } else {
-      setVideoStage('lesson_videos_complete');
-    }
-  };
-
-  const handleYoutubeReady = (event) => {
-    youtubePlayerRef.current = event.target;
-    // Now that the player is ready, check for and seek to saved time
-    const lessonProgress = userOverallProgress?.lessons?.[currentLesson.id];
-    const savedTime = lessonProgress?.playbackTime;
-    if (savedTime && savedTime > 1 && !completedLessons.has(currentLesson.id)) {
-      youtubePlayerRef.current.seekTo(savedTime, true);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (user && currentLesson && videoRef.current) {
-      const lessonProgress = userOverallProgress?.lessons?.[currentLesson.id];
-      const savedTime = lessonProgress?.playbackTime;
-      if (savedTime && savedTime > 1 && !completedLessons.has(currentLesson.id)) {
-        videoRef.current.currentTime = savedTime;
-      }
-    }
-  };
-
-  const areAllVideosWatched = 
-    videoStage === 'lesson_videos_complete' ||
-    videoStage === 'no_video_for_lesson';
-
   const handleCompleteLesson = async () => {
     if (!user || !currentLesson) return;
     try {
@@ -351,27 +288,6 @@ const CoursePlayer = () => {
     }
   };
 
-  const handleContinueToSecondVideo = () => {
-    setVideoStage('secondary_playing');
-  };
-
-  const handleYoutubeStateChange = (event) => {
-    // The event.data value corresponds to the player's state:
-    // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
-    switch (event.data) {
-      case 1: // Playing
-        handlePlay();
-        break;
-      case 0: // Ended
-      case 2: // Paused
-        handlePause();
-        break;
-      default:
-        // Do nothing for other states like buffering, cued, etc.
-        break;
-    }
-  };
-
   if (loading) {
     return <div className="loading-container">Loading Course...</div>;
   }
@@ -380,74 +296,34 @@ const CoursePlayer = () => {
     return <div className="error-container">{error}</div>;
   }
 
-  const idleModal = isIdleModalOpen && (
-    <div className="idle-modal-overlay">
-      <div className="idle-modal-content">
-        <h2>Are you still there?</h2>
-        <p>Inactivity for another 5mins will result in a logout.</p>
-        <button onClick={() => {
-          setIsIdleModalOpen(false);
-          // Resume both types of videos
-          videoRef.current?.play();
-          youtubePlayerRef.current?.playVideo();
-        }} className="btn btn-primary">
-          I'm still here
-        </button>
-      </div>
-    </div>
-  );
+  const handleIdleConfirm = () => {
+    setIsIdleModalOpen(false);
+    // Resume both types of videos
+    playerRef.current?.play();
+  };
 
-  const timeLimitModal = isTimeLimitReached && (
-    <div className="time-limit-modal-overlay">
-      <div className="time-limit-modal-content">
-        <h2>Time Limit Reached</h2>
-        <p>{resumeTimeMessage}</p>
-        <button onClick={() => {
-          setIsTimeLimitReached(false);
-        }} className="btn btn-primary">
-          OK
-        </button>
-      </div>
-    </div>
-  );
+  const handleTimeLimitClose = () => {
+    setIsTimeLimitReached(false);
+  };
+
+  const handleLessonClick = (lessonId) => {
+    const newLesson = lessons[lessonId];
+    if (newLesson) {
+      setCurrentLesson(newLesson);
+      setAllVideosWatched(false); // Reset watch status for the new lesson
+    }
+  };
 
   return (
     <div className="course-player-container">
-      <div className="sidebar">
-        <h1>{course?.title}</h1>
-        {modules.map(module => (
-            <div key={module.id} className="module-section">
-                <h3>{module.title}</h3>
-                <ul>
-                    {module.lessonOrder.map(lessonId => {
-                        const lesson = lessons[lessonId];
-                        if (!lesson) return null;
-                        const isCompleted = completedLessons.has(lessonId);
-                        const isActive = currentLesson?.id === lessonId;
-                        return (
-                            <li 
-                                key={lesson.id} 
-                                className={`${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`}
-                                onClick={() => {
-                                  const newLesson = lessons[lessonId];
-                                  if (newLesson) {
-                                    setCurrentLesson(newLesson);
-                                    setVideoStage('primary');
-                                  }
-                                }}
-                            >
-                                <span className="lesson-status-icon">
-                                    <span className="icon-box">☐</span>
-                                    <span className="icon-check">✓</span>
-                                </span>
-                                <span className="lesson-title">{lesson.title}</span>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </div>
-        ))}
-      </div>
+      <CourseSidebar
+        course={course}
+        modules={modules}
+        lessons={lessons}
+        completedLessons={completedLessons}
+        currentLesson={currentLesson}
+        onLessonClick={handleLessonClick}
+      />
 
       <main className="main-content">
         {courseCompleted ? (
@@ -458,54 +334,16 @@ const CoursePlayer = () => {
         ) : currentLesson ? (
           <div>
             <h2>{currentLesson.title}</h2>
-            <div className="video-player-wrapper">
-              {videoStage === 'primary_playing' && currentLesson.videoUrl && (
-                currentLesson.videoUrl.startsWith("http") || currentLesson.videoUrl.startsWith("/") ? (
-                  <video 
-                    ref={videoRef} 
-                    src={currentLesson.videoUrl} 
-                    className="video-player" 
-                    controls 
-                    onPlay={handlePlay} onPause={handlePause} onEnded={handleVideoEnded} onLoadedMetadata={handleLoadedMetadata}
-                    title={currentLesson.title} 
-                  />
-                ) : (
-                  <YouTube
-                    videoId={currentLesson.videoUrl}
-                    className="video-player"
-                    onReady={handleYoutubeReady}
-                    onEnd={handleVideoEnded}
-                    onStateChange={handleYoutubeStateChange} />
-                )
-              )}
-
-              {videoStage === 'primary_ended_awaiting_continue' && currentLesson.videoUrl2 && (
-                <div className="video-placeholder">
-                  <p>You've completed the first part of this lesson.</p>
-                  <button onClick={handleContinueToSecondVideo} className="btn btn-primary">
-                    Continue to Key Takeaways
-                  </button>
-                </div>
-              )}
-
-              {videoStage === 'secondary_playing' && currentLesson.videoUrl2 && (
-                <video
-                  ref={videoRef}
-                  src={currentLesson.videoUrl2}
-                  className="video-player"
-                  controls
-                  autoPlay
-                  onPlay={handlePlay} onPause={handlePause} onEnded={handleVideoEnded} onLoadedMetadata={handleLoadedMetadata}
-                  title={`${currentLesson.title} - Part 2`}
-                />
-              )}
-
-              {(videoStage === 'lesson_videos_complete' || videoStage === 'no_video_for_lesson') && (
-                <div className="video-placeholder">
-                  {currentLesson.videoUrl ? "Video(s) complete." : "No video for this lesson."}
-                </div>
-              )}
-            </div>
+            <VideoPlayer
+              ref={playerRef}
+              lesson={currentLesson}
+              onPlay={handlePlay}
+              onPause={handlePause}
+              user={user}
+              onAllVideosWatched={setAllVideosWatched}
+              userOverallProgress={userOverallProgress}
+              completedLessons={completedLessons}
+            />
             <div className="lesson-description-box">
               <p>
                 {currentLesson.content || "No description available."}
@@ -516,10 +354,10 @@ const CoursePlayer = () => {
                 <button 
                     onClick={handleCompleteLesson} 
                     className="btn btn-primary"
-                    disabled={!areAllVideosWatched}
-                    title={!areAllVideosWatched ? "You must finish all videos to continue." : ""}
+                    disabled={!allVideosWatched}
+                    title={!allVideosWatched ? "You must finish all videos to continue." : ""}
                 >
-                  {areAllVideosWatched ? 'Mark as Complete' : 'Finish the video(s) to continue'}
+                  {allVideosWatched ? 'Mark as Complete' : 'Finish the video(s) to continue'}
                 </button> 
               )}
             </div>
@@ -530,8 +368,15 @@ const CoursePlayer = () => {
           </div>
         )}
       </main>
-      {idleModal}
-      {timeLimitModal}
+      <IdleModal 
+        isOpen={isIdleModalOpen}
+        onConfirm={handleIdleConfirm}
+      />
+      <TimeLimitModal 
+        isOpen={isTimeLimitReached}
+        onClose={handleTimeLimitClose}
+        message={resumeTimeMessage}
+      />
       <IdentityVerificationModal
         isOpen={isVerificationModalOpen}
         question={verificationQuestion.question}
