@@ -7,8 +7,11 @@ import { useNotification } from "../components/Notification/NotificationContext"
 
 import MyCourses from "../components/MyCourses";
 import UserProgressDashboard from "./UserProgressDashboard";
+import ProfileDisplay from "../components/profile/ProfileDisplay";
+import ProfileEditForm from "../components/profile/ProfileEditForm";
+import SecurityQuestionsDisplay from "../components/profile/SecurityQuestionsDisplay";
+import SecurityQuestionsEditForm from "../components/profile/SecurityQuestionsEditForm";
 import { deleteUserProgress, setSecurityQuestions as saveSecurityQuestionsToFirestore } from "../services/userProgressFirestoreService";
-import formatPhoneNumber from "../utils/formatPhoneNumber";
 
 const predefinedQuestions = [
   "What was your first pet's name?",
@@ -241,60 +244,15 @@ const UserProfile = () => {
       <div className="user-profile-section">
         <h2>User Profile</h2>
         {editing ? (
-          <form className="auth-form" onSubmit={handleSave} style={{ marginBottom: "1rem" }}>
-            <div style={{ marginBottom: "1rem" }}>
-              <label htmlFor="firstName" style={{ display: "block", marginBottom: "0.25rem" }}>First Name:</label>
-              <input type="text" id="firstName" name="firstName" value={form.firstName} onChange={handleChange} required autoComplete="given-name" />
-            </div>
-            <div style={{ marginBottom: "1rem" }}>
-              <label htmlFor="middleName" style={{ display: "block", marginBottom: "0.25rem" }}>Middle Name:</label>
-              <input type="text" id="middleName" name="middleName" value={form.middleName} onChange={handleChange} autoComplete="additional-name" />
-            </div>
-            <div style={{ marginBottom: "1rem" }}>
-              <label htmlFor="lastName" style={{ display: "block", marginBottom: "0.25rem" }}>Last Name:</label>
-              <input type="text" id="lastName" name="lastName" value={form.lastName} onChange={handleChange} required autoComplete="family-name" />
-            </div>
-            <div style={{ marginBottom: "1rem" }}>
-              <label htmlFor="birthday" style={{ display: "block", marginBottom: "0.25rem" }}>Birthday:</label>
-              <input type="date" id="birthday" name="birthday" value={form.birthday} onChange={handleChange} required autoComplete="bday" />
-            </div>
-            <div style={{ marginBottom: "1rem" }}>
-              <label style={{ display: "block", marginBottom: "0.25rem" }}>Address:</label>
-              <label htmlFor="houseNumber" className="sr-only">House Number</label>
-              <input type="text" id="houseNumber" name="houseNumber" placeholder="House Number" value={form.houseNumber} onChange={handleChange} required style={{ width: "30%", marginRight: "1%" }} autoComplete="address-line1" />
-              <label htmlFor="street" className="sr-only">Street</label>
-              <input type="text" id="street" name="street" placeholder="Street" value={form.street} onChange={handleChange} required style={{ width: "68%" }} autoComplete="address-line2" />
-            </div>
-            <div style={{ marginBottom: "1rem" }}>
-              <label htmlFor="town" className="sr-only">Town</label>
-              <input type="text" id="town" name="town" placeholder="Town" value={form.town} onChange={handleChange} required style={{ width: "40%", marginRight: "4%" }} autoComplete="address-level2" />
-              <label htmlFor="state" className="sr-only">State</label>
-              <input type="text" id="state" name="state" placeholder="State" value={form.state} onChange={handleChange} required style={{ width: "20%", marginRight: "4%" }} autoComplete="address-level1" />
-              <label htmlFor="zip" className="sr-only">Zip</label>
-              <input type="text" id="zip" name="zip" placeholder="Zip" value={form.zip} onChange={handleChange} required style={{ width: "30%" }} autoComplete="postal-code" />
-            </div>
-            <div style={{ marginBottom: "1rem" }}>
-              <label htmlFor="phone" style={{ display: "block", marginBottom: "0.25rem" }}>Phone:</label>
-              <input type="tel" id="phone" name="phone" value={form.phone} onChange={handleChange} required autoComplete="tel" />
-            </div>
-            <button type="submit" className="btn btn-secondary" style={{ marginRight: "1rem" }}>Save</button>
-            <button type="button" onClick={handleCancel} className="btn">Cancel</button>
-          </form>
+          <ProfileEditForm
+            form={form}
+            onFormChange={handleChange}
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
         ) : (
           <>
-            <p><strong>Name:</strong> {profile?.firstName || ""} {profile?.middleName || ""} {profile?.lastName || ""}</p>
-            <p><strong>Birthday:</strong> {profile?.birthday || "-"}</p>
-            <p><strong>Email:</strong> {user.email}</p>
-            <p><strong>Address:</strong> {
-              profile?.address ? (
-                <>
-                  {profile.address.houseNumber || ""} {profile.address.street || ""},<br />
-                  {profile.address.town || ""}, {profile.address.state || ""} {profile.address.zip || ""}
-                </>
-              ) : "-"
-            }</p>
-            <p><strong>Phone:</strong> {formatPhoneNumber(profile?.phone) || "-"}</p>
-            <button onClick={handleEdit} className="btn btn-secondary" style={{ marginRight: "1rem" }}>Edit</button>
+            <ProfileDisplay profile={profile} email={user.email} onEdit={handleEdit} />
           </>
         )}
         <button onClick={logout} className="btn btn-danger">Logout</button>
@@ -306,48 +264,19 @@ const UserProfile = () => {
       <div className="user-profile-section">
         <h2>Security Questions</h2>
         {editingSecurity ? (
-          <form className="auth-form" onSubmit={handleSaveSecurityQuestions}>
-            <p>Please select and answer three security questions. These will be used to verify your identity during the course.</p>
-            {securityForm.map((item, index) => (
-              <div key={index} style={{ marginBottom: "1rem" }}>
-                <label htmlFor={`question-${index}`}>Question {index + 1}:</label>
-                <select
-                  id={`question-${index}`}
-                  value={item.question}
-                  onChange={(e) => handleSecurityChange(index, 'question', e.target.value)}
-                  required
-                >
-                  {predefinedQuestions.map(q => (
-                    <option key={q} value={q}>{q}</option>
-                  ))}
-                </select>
-                <label htmlFor={`answer-${index}`} className="sr-only">Answer {index + 1}</label>
-                <input
-                  type="text"
-                  id={`answer-${index}`}
-                  placeholder="Your Answer"
-                  value={item.answer}
-                  onChange={(e) => handleSecurityChange(index, 'answer', e.target.value)}
-                  required
-                  autoComplete="off"
-                />
-              </div>
-            ))}
-            <button type="submit" className="btn btn-secondary" style={{ marginRight: "1rem" }}>Save Questions</button>
-            {securityQuestions.length > 0 && (
-              <button type="button" onClick={handleCancelSecurityEdit} className="btn">Cancel</button>
-            )}
-          </form>
+          <SecurityQuestionsEditForm
+            form={securityForm}
+            predefinedQuestions={predefinedQuestions}
+            onFormChange={handleSecurityChange}
+            onSave={handleSaveSecurityQuestions}
+            onCancel={handleCancelSecurityEdit}
+            hasExistingQuestions={securityQuestions.length > 0}
+          />
         ) : securityQuestions.length > 0 ? (
-          <div>
-            {/* BUG FIX: Display only the question text, not the encrypted answer */}
-            <ul>
-              {securityQuestions.map((q, index) => (
-                <li key={index}><em>{q.question}</em></li>
-              ))}
-            </ul>
-            <button onClick={handleEditSecurityQuestions} className="btn btn-secondary">Edit Security Questions</button>
-          </div>
+          <SecurityQuestionsDisplay 
+            questions={securityQuestions}
+            onEdit={handleEditSecurityQuestions}
+          />
         ) : <p>You have not set up your security questions yet.</p>}
       </div>
 

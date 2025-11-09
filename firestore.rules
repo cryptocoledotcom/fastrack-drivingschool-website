@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- DEFAULT RULE ---
+    // By default, deny all access. This is the most secure starting point.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- USER DATA RULES ---
+    // Rule 1: Allow a user to read/update their own profile document in the 'users' collection.
+    match /users/{userId} {
+      allow get, update: if request.auth.uid == userId;
+    }
+    // Rule 2: Allow a user to read/write documents in their own subcollections (e.g., securityProfile, courses).
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // --- USER PROGRESS RULE (CRITICAL FIX) ---
+    // Rule 3: Allow a user to read/write their own progress document in the 'userProgress' collection.
+    match /userProgress/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // --- LOCKOUT RULE ---
+    // Rule 4: Allow any authenticated user to CREATE a lockout record.
+    // They cannot read or modify existing records.
+    match /lockouts/{lockoutId} {
+      allow create: if request.auth != null;
+    }
+
+    // --- PUBLIC CONTENT & TIME SLOTS RULES ---
+    // Rule 5: Allow any authenticated user to READ (get and list) all public course content
+    // and time slots. This is required for the CoursePlayer, UserProgressDashboard, and MyCourses.
+    match /courses/{doc} { allow read: if request.auth != null; }
+    match /modules/{doc} { allow read: if request.auth != null; }
+    match /lessons/{doc} { allow read: if request.auth != null; }
+    match /quizzes/{doc} { allow read: if request.auth != null; }
+    match /tests/{doc} { allow read: if request.auth != null; }
+    match /time_slots/{doc} {
+      allow read: if request.auth != null;
+    }
+
+    // Note: Admin-only write rules for content and time_slots will be added later.
+    // For now, they are correctly denied write access by the default rule.
+  }
+}

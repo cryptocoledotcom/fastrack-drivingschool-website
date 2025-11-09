@@ -35,7 +35,7 @@ const findFirstUncompletedLesson = (modules, completedLessons) => {
 
 const CoursePlayer = () => {
   const { courseId } = useParams();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [course, setCourse] = useState(null);
   const [modules, setModules] = useState([]);
   const [lessons, setLessons] = useState({});
@@ -65,7 +65,7 @@ const CoursePlayer = () => {
     completedLessons,
     onVerificationStart: () => playerRef.current?.pause(),
     onVerificationSuccess: () => playerRef.current?.play(),
-    // onVerificationFail: () => logout(), // We can wire this up later
+    onVerificationFail: () => {}, // The modal now handles the logout action
   });
   // --- END: IDENTITY VERIFICATION HOOK ---
 
@@ -106,6 +106,10 @@ const CoursePlayer = () => {
       const progress = await getUserProgress(user.uid);
       setUserOverallProgress(progress);
       if (progress && progress.lessons) {
+        if (progress.isLocked) {
+          setError("Your account is locked due to failed identity verification. Please contact support.");
+          return;
+        }
         const completedLessonIds = Object.keys(progress.lessons).filter(lessonId => progress.lessons[lessonId].completed);
         setCompletedLessons(new Set(completedLessonIds));
       }
@@ -383,6 +387,7 @@ const CoursePlayer = () => {
         onSubmit={handleVerificationSubmit}
         error={verificationError}
         attemptsLeft={verificationAttempts}
+        onAcknowledgeLogout={logout}
       />
     </div>
   );

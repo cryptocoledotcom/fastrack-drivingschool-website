@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { db } from '../Firebase';
 import { hashText } from '../services/userProgressFirestoreService'; // Import the SAME hashing function
 
@@ -58,8 +58,9 @@ export const useIdentityVerification = ({ user, currentLesson, completedLessons,
       if (verificationIntervalRef.current) {
         clearInterval(verificationIntervalRef.current);
       }
-      // --- FOR PRODUCTION: Set a random interval between 20 and 40 minutes ---
-      const randomInterval = (Math.random() * (40 - 20) + 20) * 60 * 1000;
+      // --- FOR TESTING: Set a short random interval (10-15 seconds) ---
+      const randomInterval = (Math.random() * (15 - 10) + 10) * 1000;
+      // --- FOR PRODUCTION: const randomInterval = (Math.random() * (40 - 20) + 20) * 60 * 1000;
 
       verificationIntervalRef.current = setInterval(triggerVerification, randomInterval);
     };
@@ -93,12 +94,24 @@ export const useIdentityVerification = ({ user, currentLesson, completedLessons,
       setVerificationError('');
       onVerificationSuccess?.();
     } else {
-      const newAttempts = verificationAttempts - 1;
-      setVerificationAttempts(newAttempts);
-      if (newAttempts > 0) {
-        setVerificationError('Incorrect answer. Please try again.');
+      // Decrement attempts if the answer is wrong
+      const newAttemptsLeft = verificationAttempts - 1;
+      setVerificationAttempts(newAttemptsLeft);
+
+      if (newAttemptsLeft > 0) {
+        setVerificationError(`Incorrect answer. You have ${newAttemptsLeft} attempt(s) remaining.`);
       } else {
-        setVerificationError('You have failed the identity verification. Please contact support.');
+        // Final failure: Set locked out state and trigger side-effects
+        setVerificationError('You have failed identity verification and your account has been locked.');
+        try {
+          // Write a record to the 'lockouts' collection for backend processing (e.g., email trigger)
+          const lockoutRef = doc(collection(db, "lockouts"));
+          await setDoc(lockoutRef, { userId: user.uid, userEmail: user.email, timestamp: serverTimestamp() });
+          // Set the lock status on the user's main profile
+          await setDoc(doc(db, 'users', user.uid), { isLocked: true }, { merge: true });
+        } catch (err) {
+          console.error("Error writing lockout record:", err);
+        }
         onVerificationFail?.();
       }
     }

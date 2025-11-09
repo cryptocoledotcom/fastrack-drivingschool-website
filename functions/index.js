@@ -1,6 +1,8 @@
 const functions = require("firebase-functions");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const nodemailer = require("nodemailer");
 
 // Initialize Secret Manager client
 const secretsClient = new SecretManagerServiceClient();
@@ -13,6 +15,17 @@ async function getGeminiApiKey() {
   const payload = version.payload?.data?.toString();
   if (!payload) {
     throw new Error("Gemini API key not found in Secret Manager.");
+  }
+  return payload;
+}
+
+// Function to access the Nodemailer App Password from Secret Manager
+async function getNodemailerPassword() {
+  const name = "projects/176295468347/secrets/NODEMAILER_APP_PASSWORD/versions/latest";
+  const [version] = await secretsClient.accessSecretVersion({ name });
+  const payload = version.payload?.data?.toString();
+  if (!payload) {
+    throw new Error("Nodemailer App Password not found in Secret Manager.");
   }
   return payload;
 }
@@ -40,3 +53,51 @@ exports.generateContent = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError("internal", "AI generation failed.", error.message);
   }
 });
+
+/**
+ * Firestore trigger that sends an email notification when a user is locked out.
+ * This function activates whenever a new document is created in the 'lockouts' collection.
+ */
+exports.sendLockoutNotification = onDocumentCreated("lockouts/{lockoutId}", async (event) => {
+      try {
+        // Securely fetch credentials at runtime
+        const nodemailerEmail = process.env.NODEMAILER_EMAIL;
+        const nodemailerPassword = await getNodemailerPassword();
+
+        // Initialize the Nodemailer transporter inside the function
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: nodemailerEmail,
+          pass: nodemailerPassword,
+        },
+      });
+
+      const snap = event.data;
+      if (!snap) return; // Exit if there's no data
+      const lockoutData = snap.data();
+      const userEmail = lockoutData.userEmail;
+      const userId = lockoutData.userId;
+
+      const mailOptions = {
+        from: `Fastrack Driving School <${nodemailerEmail}>`,
+        to: "cole@fastrackdrive.com", // Your admin email address
+        subject: "User Account Locked Out - Action Required",
+        html: `
+        <h1>User Lockout Alert</h1>
+        <p>A user has been locked out of their account due to multiple failed identity verification attempts.</p>
+        <h2>User Details:</h2>
+        <ul>
+          <li><strong>Email:</strong> ${userEmail}</li>
+          <li><strong>User ID:</strong> ${userId}</li>
+        </ul>
+        <p>To unlock their account, please go to the Firebase console, navigate to the 'users' collection, find the document with the ID above, and set the 'isLocked' field to 'false'.</p>
+      `,
+      };
+
+        await transporter.sendMail(mailOptions);
+        functions.logger.log("Lockout notification email sent successfully to cole@fastrackdrive.com for user:", userEmail);
+      } catch (error) {
+        functions.logger.error("Error sending lockout email:", error);
+      }
+    });
