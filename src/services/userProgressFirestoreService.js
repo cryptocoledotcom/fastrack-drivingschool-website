@@ -327,3 +327,36 @@ export const logVerificationAttempt = async (userId, logData) => {
     throw error;
   }
 }
+
+/**
+ * Fetches a single random security question for the user.
+ * @param {string} userId The ID of the user.
+ * @returns {Promise<object|null>} A promise that resolves to a single question object or null.
+ */
+export const getRandomSecurityQuestion = async (userId) => {
+  if (!userId) return null;
+  const securityDocRef = doc(db, `users/${userId}/securityProfile`, 'questions');
+  try {
+    const securityDoc = await getDoc(securityDocRef, { source: 'server' });
+    if (securityDoc.exists()) {
+      const questions = securityDoc.data().questions;
+      if (Array.isArray(questions) && questions.length > 0) {
+        const randomIndex = Math.floor(Math.random() * questions.length);
+        return questions[randomIndex];
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Failed to fetch random security question:", error);
+    throw error;
+  }
+};
+
+/**
+ * Sets the user's account to locked in Firestore.
+ * @param {string} userId The ID of the user to lock.
+ */
+export const lockUserAccount = async (userId) => {
+  if (!userId) return;
+  await setDoc(doc(db, 'users', userId), { isLocked: true }, { merge: true });
+};

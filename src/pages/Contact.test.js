@@ -81,7 +81,6 @@ describe('Contact Component', () => {
   it('should show an error notification if the form submission fails', async () => {
     // Temporarily mock console.error to suppress the expected error message in the test output
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     // Mock a failed Firestore write
     addDoc.mockRejectedValue(new Error('Firestore write failed'));
 

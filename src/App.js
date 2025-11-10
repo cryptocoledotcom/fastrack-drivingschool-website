@@ -23,7 +23,12 @@ import Admin from './pages/Admin';
 
 function App() {
   return (
-    <Router>
+    <Router
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <AuthProvider>
         <NotificationProvider>
           <div className="App">

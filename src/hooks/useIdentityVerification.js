@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { doc, getDoc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
-import { db } from '../Firebase';
-import { hashText } from '../services/userProgressFirestoreService'; // Import the SAME hashing function
+import { hashText, getRandomSecurityQuestion, lockUserAccount, logVerificationAttempt } from '../services/userProgressFirestoreService';
 
 /**
  * A custom hook to manage periodic identity verification.
@@ -14,7 +12,7 @@ import { hashText } from '../services/userProgressFirestoreService'; // Import t
  * @param {function} options.onVerificationFail - Callback to run on final failure (e.g., to log out).
  * @returns {object} The state and handlers for the identity verification modal.
  */
-export const useIdentityVerification = ({ user, currentLesson, completedLessons, onVerificationStart, onVerificationSuccess, onVerificationFail }) => {
+export const useIdentityVerification = ({ user, isCourseActive, onVerificationStart, onVerificationSuccess, onVerificationFail }) => {
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [verificationQuestion, setVerificationQuestion] = useState({ question: '', answer: '' });
   const [verificationError, setVerificationError] = useState('');
@@ -26,32 +24,21 @@ export const useIdentityVerification = ({ user, currentLesson, completedLessons,
 
     onVerificationStart?.();
 
-    try {
-      const securityDocRef = doc(db, `users/${user.uid}/securityProfile`, 'questions');
-      // Force a fetch from the server to bypass any stale cache. This is the key fix.
-      const securityDoc = await getDoc(securityDocRef, {
-        source: 'server'
-      });
-
-      if (securityDoc.exists()) {
-        const questions = securityDoc.data().questions;
-        if (questions && questions.length > 0) {
-          // This is the key fix. The data is an array of objects.
-          // We need to select a random object from the array.
-          const randomIndex = Math.floor(Math.random() * questions.length);
-          const selectedQuestionObject = questions[randomIndex];
-
-          // Set the state with the selected question object.
-          setVerificationQuestion(selectedQuestionObject);
-          setVerificationAttempts(3);
-          setVerificationError('');
-          setIsVerificationModalOpen(true);
-        }
+    try { // Use the new service function
+      const question = await getRandomSecurityQuestion(user.uid);
+      if (question) {
+        setVerificationQuestion(question);
+        setVerificationAttempts(3);
+        setVerificationError('');
+        setIsVerificationModalOpen(true);
+      } else {
+        console.warn("No security questions found for user, skipping verification.");
+        onVerificationSuccess?.(); // Allow user to continue if no questions are set up
       }
     } catch (err) {
       console.error("Failed to trigger verification check:", err);
     }
-  }, [user, isVerificationModalOpen, onVerificationStart]);
+  }, [user, isVerificationModalOpen, onVerificationStart, onVerificationSuccess]);
 
   useEffect(() => {
     const startVerificationTimer = () => {
@@ -64,7 +51,7 @@ export const useIdentityVerification = ({ user, currentLesson, completedLessons,
       verificationIntervalRef.current = setInterval(triggerVerification, randomInterval);
     };
 
-    if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
+    if (user && isCourseActive) {
       startVerificationTimer();
     }
 
@@ -73,7 +60,7 @@ export const useIdentityVerification = ({ user, currentLesson, completedLessons,
         clearInterval(verificationIntervalRef.current);
       }
     };
-  }, [user, currentLesson, completedLessons, triggerVerification]);
+  }, [user, isCourseActive, triggerVerification]);
 
   const handleVerificationSubmit = async (userAnswer) => {
     // This is the definitive fix. The field in the database is `answerHash`.
@@ -103,11 +90,8 @@ export const useIdentityVerification = ({ user, currentLesson, completedLessons,
         // Final failure: Set locked out state and trigger side-effects
         setVerificationError('You have failed identity verification and your account has been locked.');
         try {
-          // Write a record to the 'lockouts' collection for backend processing (e.g., email trigger)
-          const lockoutRef = doc(collection(db, "lockouts"));
-          await setDoc(lockoutRef, { userId: user.uid, userEmail: user.email, timestamp: serverTimestamp() });
-          // Set the lock status on the user's main profile
-          await setDoc(doc(db, 'users', user.uid), { isLocked: true }, { merge: true });
+          await lockUserAccount(user.uid);
+          await logVerificationAttempt(user.uid, { question: verificationQuestion.question, wasSuccessful: false });
         } catch (err) {
           console.error("Error writing lockout record:", err);
         }

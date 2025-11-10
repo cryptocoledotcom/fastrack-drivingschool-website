@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getUserProgress } from '../services/userProgressFirestoreService';
+import { getUserProgress, updateActivityProgress, clearLastViewedLesson } from '../services/userProgressFirestoreService';
 
 /**
  * A custom hook to fetch and manage a user's progress for all courses.
@@ -46,5 +46,31 @@ export const useUserCourseProgress = (user) => {
     return () => window.removeEventListener('focus', fetchProgress);
   }, [fetchProgress]);
 
-  return { userOverallProgress, completedLessons, loading, error, fetchProgress, setCompletedLessons, setUserOverallProgress };
+  /**
+   * Marks a lesson as complete, updating both Firestore and local state.
+   * @param {string} lessonId The ID of the lesson to complete.
+   * @param {string} courseId The ID of the course the lesson belongs to.
+   */
+  const completeLesson = useCallback(async (lessonId, courseId) => {
+    if (!user?.uid || !lessonId || !courseId) {
+      throw new Error("User, lessonId, and courseId are required to complete a lesson.");
+    }
+
+    // 1. Update Firestore
+    await updateActivityProgress(user.uid, 'lessons', lessonId, { completed: true });
+    await clearLastViewedLesson(user.uid, courseId);
+
+    // 2. Update local state optimistically for immediate UI feedback
+    setUserOverallProgress(prev => {
+      const newProgress = { ...prev };
+      if (newProgress.lastViewedLesson) delete newProgress.lastViewedLesson[courseId];
+      if (newProgress.lessons?.[lessonId]) newProgress.lessons[lessonId].completed = true;
+      return newProgress;
+    });
+    setCompletedLessons(prev => new Set(prev).add(lessonId));
+
+  }, [user]);
+
+  // Return state and well-defined action functions
+  return { userOverallProgress, completedLessons, loading, error, fetchProgress, actions: { completeLesson } };
 };

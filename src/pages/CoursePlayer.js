@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../Firebase";
 import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
-import { updateActivityProgress, saveLessonPlaybackTime, setLastViewedLesson, clearLastViewedLesson, addCourseAuditLog, getTimeSpentToday } from "../services/userProgressFirestoreService";
-import { useIdleTimer } from '../hooks/useIdleTimer';
+import { saveLessonPlaybackTime, setLastViewedLesson, addCourseAuditLog } from "../services/userProgressFirestoreService";
 import { useTimeTracker } from '../hooks/useTimeTracker';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
 import { useNotification } from '../components/Notification/NotificationContext'; // Import useNotification
@@ -16,24 +15,23 @@ import IdleModal from '../components/modals/IdleModal';
 import VideoPlayer from '../components/VideoPlayer';
 import CourseSidebar from '../components/CourseSidebar';
 import TimeLimitModal from '../components/modals/TimeLimitModal';
+import { useCourseSession } from '../hooks/useCourseSession'; // Import the new session hook
 import { findFirstUncompletedLesson } from '../utils/courseUtils';
 
 const CoursePlayer = () => {
   const { courseId } = useParams();
   const { user, logout } = useAuth();
   const { showNotification } = useNotification(); // Get showNotification
-  const { course, modules, lessons, loading: courseLoading, error: courseError } = useCourseData(courseId);
-  const { userOverallProgress, completedLessons, loading: progressLoading, error: progressError, setCompletedLessons, setUserOverallProgress } = useUserCourseProgress(user);
+  const { course, modules, lessons, loading: courseLoading, error: courseError } = useCourseData(courseId); 
+  const { userOverallProgress, completedLessons, loading: progressLoading, error: progressError, actions } = useUserCourseProgress(user);
   const [currentLesson, setCurrentLesson] = useState(null);
   const [userCourseId, setUserCourseId] = useState(null);
-  const lastPlaybackTimeRef = useRef(0);
-  const [isTimeLimitReached, setIsTimeLimitReached] = useState(false);
-  const [resumeTimeMessage, setResumeTimeMessage] = useState('');
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [allVideosWatched, setAllVideosWatched] = useState(false);
   const playerRef = useRef(null); // A single ref for the new VideoPlayer component
+  const isCourseActive = currentLesson && !completedLessons.has(currentLesson.id);
 
-  // --- START: IDENTITY VERIFICATION HOOK ---
+  // --- Identity Verification Hook ---
   const {
     isVerificationModalOpen,
     verificationQuestion,
@@ -42,28 +40,28 @@ const CoursePlayer = () => {
     handleVerificationSubmit,
   } = useIdentityVerification({
     user,
-    currentLesson,
-    completedLessons,
+    isCourseActive,
     onVerificationStart: () => playerRef.current?.pause(),
     onVerificationSuccess: () => playerRef.current?.play(),
     onVerificationFail: () => {}, // The modal now handles the logout action
   });
   // --- END: IDENTITY VERIFICATION HOOK ---
 
-  // --- START: TIME TRACKING & IDLE LOGIC ---
-  const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons, playerRef);
-  const [isIdleModalOpen, setIsIdleModalOpen] = useState(false);
-
-  const handleIdle = useCallback(() => {
-    // Prevent idle modal if verification modal is already open
-    if (!isIdleModalOpen && !isTimeLimitReached && !isVerificationModalOpen) {
-      playerRef.current?.pause();
-      setIsIdleModalOpen(true);
+  // --- Session Management Hook (Idle & Time Limit) ---
+  const { isIdle, isTimeLimitReached, resumeTimeMessage, actions: sessionActions } = useCourseSession(
+    user,
+    isCourseActive,
+    () => {
+      // Prevent idle modal if verification modal is already open
+      if (!isVerificationModalOpen) {
+        playerRef.current?.pause();
+      }
     }
-  }, [isIdleModalOpen, isTimeLimitReached, isVerificationModalOpen]);
+  );
+  // --- END: SESSION MANAGEMENT HOOK ---
 
-  useIdleTimer(handleIdle, 5 * 60 * 1000);
-  // --- END: TIME TRACKING & IDLE LOGIC ---
+  // --- Time Tracking Hook ---
+  const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons, playerRef);
 
   useEffect(() => {
     const findUserCourse = async () => {
@@ -79,20 +77,6 @@ const CoursePlayer = () => {
     };
     findUserCourse();
   }, [user, courseId]);
-
-  // Effect to handle saving progress when the user closes the tab/browser
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      // This logic runs just before the page is unloaded. It must be synchronous.
-      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
-        saveOnExit(); // Save any pending active time
-        const playbackTime = playerRef.current?.getCurrentTime();
-        if (playbackTime) saveLessonPlaybackTime(user.uid, currentLesson.id, playbackTime);
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [user, currentLesson, completedLessons, saveOnExit]);
 
   // Main logic effect to determine the current lesson
   useEffect(() => {
@@ -118,33 +102,11 @@ const CoursePlayer = () => {
   }, [modules, lessons, completedLessons, courseLoading, progressLoading, user, userOverallProgress, courseId]);
 
   useEffect(() => {
-    if (!user || !currentLesson || completedLessons.has(currentLesson.id)) {
-      return;
+    // Effect to pause the video if the time limit is reached by the session hook
+    if (isTimeLimitReached) {
+      playerRef.current?.pause();
     }
-    const checkDailyTimeLimit = async () => {
-      const totalTimeTodaySeconds = await getTimeSpentToday(user.uid);
-      const FOUR_HOURS_IN_SECONDS = 4 * 60 * 60;
-      if (totalTimeTodaySeconds >= FOUR_HOURS_IN_SECONDS) {
-        setIsTimeLimitReached(true);
-        const now = new Date();
-        const nextLearningDay = new Date(now);
-        if (now.getHours() >= 12) {
-          nextLearningDay.setDate(now.getDate() + 1);
-        }
-        nextLearningDay.setHours(12, 0, 0, 0);
-        setResumeTimeMessage(`You have completed the state maximum of 4 hours per 24-hour block. You may continue your next learning journey after ${nextLearningDay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on ${nextLearningDay.toLocaleDateString()}.`);
-        
-        // Pause both types of videos if the time limit is reached
-        playerRef.current?.pause();
-      } else {
-        setIsTimeLimitReached(false);
-        setResumeTimeMessage('');
-      }
-    };
-    checkDailyTimeLimit();
-    const interval = setInterval(checkDailyTimeLimit, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [user, currentLesson, completedLessons]);
+  }, [isTimeLimitReached]);
 
   useEffect(() => {
     if (user && courseId && currentLesson && !completedLessons.has(currentLesson.id)) {
@@ -154,10 +116,10 @@ const CoursePlayer = () => {
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      // Use lastPlaybackTimeRef for synchronous exit events as videoRef.current might be null
       if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
         saveOnExit();
-        saveLessonPlaybackTime(user.uid, currentLesson.id, lastPlaybackTimeRef.current);
+        const playbackTime = playerRef.current?.getCurrentTime();
+        if (playbackTime) saveLessonPlaybackTime(user.uid, currentLesson.id, playbackTime);
       }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -179,14 +141,8 @@ const CoursePlayer = () => {
   const handleCompleteLesson = async () => {
     if (!user || !currentLesson) return;
     try {
-      await updateActivityProgress(user.uid, 'lessons', currentLesson.id, { completed: true });
-      await clearLastViewedLesson(user.uid, courseId);
-      setUserOverallProgress(prev => {
-        const newProgress = { ...prev };
-        if (newProgress.lastViewedLesson) delete newProgress.lastViewedLesson[courseId];
-        return newProgress;
-      });
-      setCompletedLessons(prev => new Set(prev).add(currentLesson.id));
+      // Call the single, clean action from the hook
+      await actions.completeLesson(currentLesson.id, courseId);
     } catch (err) {
       console.error("Error saving progress:", err);
       showNotification("Could not save your progress. Please try again.", "error"); // Use showNotification
@@ -206,13 +162,8 @@ const CoursePlayer = () => {
   }
 
   const handleIdleConfirm = () => {
-    setIsIdleModalOpen(false);
-    // Resume both types of videos
+    sessionActions.confirmNotIdle();
     playerRef.current?.play();
-  };
-
-  const handleTimeLimitClose = () => {
-    setIsTimeLimitReached(false);
   };
 
   const handleLessonClick = (lessonId) => {
@@ -278,12 +229,12 @@ const CoursePlayer = () => {
         )}
       </main>
       <IdleModal 
-        isOpen={isIdleModalOpen}
+        isOpen={isIdle}
         onConfirm={handleIdleConfirm}
       />
       <TimeLimitModal 
         isOpen={isTimeLimitReached}
-        onClose={handleTimeLimitClose}
+        onClose={sessionActions.closeTimeLimitModal}
         message={resumeTimeMessage}
       />
       <IdentityVerificationModal
