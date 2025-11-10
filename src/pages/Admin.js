@@ -4,17 +4,12 @@ import ManageUserCourses from '../components/Admin/ManageUserCourses';
 import ViewAuditLogs from '../components/Admin/ViewAuditLogs';
 import ContentUploader from '../components/Admin/ContentUploader';
 import { useAuth } from './Auth/AuthContext';
+import { isUserAdmin } from '../utils/authUtils';
 
 const Admin = () => {
   const { user } = useAuth();
 
-  // TODO: Replace hardcoded UID with a role-based system.
-  // This could involve checking a 'role' field on the user object
-  // which is fetched from Firestore after login.
-  // For example: const isAdmin = user && user.role === 'admin';
-  const isAdmin = user && user.uid === 'tkr4zpyuDbYrkAlYvJ9OCXDIVr52'; // This is the user's UID, not a secret key.
-
-  if (!isAdmin) {
+  if (!isUserAdmin(user)) {
     return (
       <div className="container">
         <h1>Access Denied</h1>

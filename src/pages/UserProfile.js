@@ -11,15 +11,7 @@ import ProfileDisplay from "../components/profile/ProfileDisplay";
 import ProfileEditForm from "../components/profile/ProfileEditForm";
 import SecurityQuestionsDisplay from "../components/profile/SecurityQuestionsDisplay";
 import SecurityQuestionsEditForm from "../components/profile/SecurityQuestionsEditForm";
-import { deleteUserProgress, setSecurityQuestions as saveSecurityQuestionsToFirestore } from "../services/userProgressFirestoreService";
-
-const predefinedQuestions = [
-  "What was your first pet's name?",
-  "What was the model of your first car?",
-  "In what city were you born?",
-  "What is your mother's maiden name?",
-  "What is the name of your favorite childhood friend?",
-];
+import { deleteUserProgress, setSecurityQuestions as saveSecurityQuestionsToFirestore } from "../services/userProgressFirestoreService";import { predefinedQuestions, createBlankSecurityForm } from "../utils/securityUtils";
 
 const UserProfile = () => {
   const { user, logout } = useAuth();
@@ -42,11 +34,6 @@ const UserProfile = () => {
   });
   const [securityQuestions, setSecurityQuestions] = useState([]); // Stores the questions fetched from Firestore (question text only)
   const [profileError, setProfileError] = useState("");
-
-  // Helper to create a blank security form
-  const createBlankSecurityForm = useCallback(() => {
-    return predefinedQuestions.slice(0, 3).map(q => ({ question: q, answer: '' }));
-  }, []);
 
   // securityForm will be initialized in an effect or when editing starts
   const [securityForm, setSecurityForm] = useState([]);
@@ -114,7 +101,7 @@ const UserProfile = () => {
         setSecurityForm(createBlankSecurityForm());
       }
     }
-  }, [editingSecurity, securityQuestions, createBlankSecurityForm]); // Added createBlankSecurityForm to dependencies
+  }, [editingSecurity, securityQuestions]);
 
   useEffect(() => {
     fetchProfile();

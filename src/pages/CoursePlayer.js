@@ -1,51 +1,32 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { db } from "../Firebase";
-import {
-  collection,
-  getDocs,
-  doc,
-  query,
-  where,
-  limit,
-  getDoc,
-} from "firebase/firestore";
+import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
-import { getUserProgress, updateActivityProgress, saveLessonPlaybackTime, setLastViewedLesson, initializeLesson, clearLastViewedLesson, addCourseAuditLog, getTimeSpentToday } from "../services/userProgressFirestoreService";
+import { updateActivityProgress, saveLessonPlaybackTime, setLastViewedLesson, clearLastViewedLesson, addCourseAuditLog, getTimeSpentToday } from "../services/userProgressFirestoreService";
 import { useIdleTimer } from '../hooks/useIdleTimer';
 import { useTimeTracker } from '../hooks/useTimeTracker';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
+import { useNotification } from '../components/Notification/NotificationContext'; // Import useNotification
+import { useCourseData } from '../hooks/useCourseData'; // Import the new hook
+import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Import the new progress hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 import IdleModal from '../components/modals/IdleModal';
 import VideoPlayer from '../components/VideoPlayer';
 import CourseSidebar from '../components/CourseSidebar';
 import TimeLimitModal from '../components/modals/TimeLimitModal';
-
-const findFirstUncompletedLesson = (modules, completedLessons) => {
-  for (const module of modules) {
-    for (const lessonId of module.lessonOrder) {
-      if (!completedLessons.has(lessonId)) {
-        return lessonId;
-      }
-    }
-  }
-  return null;
-};
+import { findFirstUncompletedLesson } from '../utils/courseUtils';
 
 const CoursePlayer = () => {
   const { courseId } = useParams();
   const { user, logout } = useAuth();
-  const [course, setCourse] = useState(null);
-  const [modules, setModules] = useState([]);
-  const [lessons, setLessons] = useState({});
+  const { showNotification } = useNotification(); // Get showNotification
+  const { course, modules, lessons, loading: courseLoading, error: courseError } = useCourseData(courseId);
+  const { userOverallProgress, completedLessons, loading: progressLoading, error: progressError, setCompletedLessons, setUserOverallProgress } = useUserCourseProgress(user);
   const [currentLesson, setCurrentLesson] = useState(null);
-  const [completedLessons, setCompletedLessons] = useState(new Set());
   const [userCourseId, setUserCourseId] = useState(null);
-  const [userOverallProgress, setUserOverallProgress] = useState(null);
-  const [loading, setLoading] = useState(true);
   const lastPlaybackTimeRef = useRef(0);
-  const [error, setError] = useState("");
   const [isTimeLimitReached, setIsTimeLimitReached] = useState(false);
   const [resumeTimeMessage, setResumeTimeMessage] = useState('');
   const [courseCompleted, setCourseCompleted] = useState(false);
@@ -93,81 +74,11 @@ const CoursePlayer = () => {
       if (!querySnapshot.empty) {
         setUserCourseId(querySnapshot.docs[0].id);
       } else {
-        setError("You do not have access to this course.");
-        setLoading(false);
+        // Error will be handled by the main error state
       }
     };
     findUserCourse();
   }, [user, courseId]);
-
-  const fetchProgress = useCallback(async () => {
-    if (!user || !userCourseId) return;
-    try {
-      const progress = await getUserProgress(user.uid);
-      setUserOverallProgress(progress);
-      if (progress && progress.lessons) {
-        if (progress.isLocked) {
-          setError("Your account is locked due to failed identity verification. Please contact support.");
-          return;
-        }
-        const completedLessonIds = Object.keys(progress.lessons).filter(lessonId => progress.lessons[lessonId].completed);
-        setCompletedLessons(new Set(completedLessonIds));
-      }
-    } catch (err) {
-      console.error("Error fetching user progress:", err);
-      setError("Failed to load your learning progress.");
-    }
-  }, [user, userCourseId]);
-
-  useEffect(() => {
-    if (!user || !userCourseId) return;
-    const fetchCourseContent = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const courseRef = doc(db, "courses", courseId);
-        const courseSnap = await getDoc(courseRef);
-        if (!courseSnap.exists()) throw new Error("Course not found.");
-        const courseData = courseSnap.data();
-        setCourse({ id: courseSnap.id, ...courseData });
-
-        const modulesQuery = query(collection(db, 'modules'), where('courseId', '==', courseId));
-        const modulesSnapshot = await getDocs(modulesQuery);
-        const modulesData = modulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        const sortedModules = modulesData.sort((a, b) => courseData.moduleOrder.indexOf(a.id) - courseData.moduleOrder.indexOf(b.id));
-        setModules(sortedModules);
-
-        const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
-        const lessonsSnapshot = await getDocs(lessonsQuery);
-        const lessonsData = {};
-        lessonsSnapshot.docs.forEach(doc => {
-          lessonsData[doc.id] = { id: doc.id, ...doc.data() };
-        });
-        setLessons(lessonsData);
-      } catch (err) {
-        console.error("Error fetching course content:", err);
-        setError("Failed to load course content.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCourseContent();
-  }, [courseId, user, userCourseId]);
-
-  useEffect(() => {
-    fetchProgress();
-
-    // Add a 'focus' event listener to refetch data when the user returns to this tab.
-    // This ensures that if they update their profile in another tab, the changes
-    // are reflected here, fixing the stale data issue.
-    const handleFocus = () => {
-      fetchProgress();
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [fetchProgress]);
 
   // Effect to handle saving progress when the user closes the tab/browser
   useEffect(() => {
@@ -185,7 +96,7 @@ const CoursePlayer = () => {
 
   // Main logic effect to determine the current lesson
   useEffect(() => {
-    if (loading || modules.length === 0 || Object.keys(lessons).length === 0 || !userOverallProgress) return;
+    if (courseLoading || progressLoading || modules.length === 0 || Object.keys(lessons).length === 0 || !userOverallProgress) return;
 
     const allLessonsCount = modules.reduce((acc, m) => acc + m.lessonOrder.length, 0);
     if (allLessonsCount > 0 && completedLessons.size === allLessonsCount) {
@@ -204,7 +115,7 @@ const CoursePlayer = () => {
     } else {
       setCurrentLesson(null);
     }
-  }, [modules, lessons, completedLessons, loading, user, userOverallProgress, courseId]);
+  }, [modules, lessons, completedLessons, courseLoading, progressLoading, user, userOverallProgress, courseId]);
 
   useEffect(() => {
     if (!user || !currentLesson || completedLessons.has(currentLesson.id)) {
@@ -255,25 +166,15 @@ const CoursePlayer = () => {
 
   useEffect(() => {
     if (courseCompleted && user && course) {
-      const fetchTotalTimeAndLog = async () => {
-        try {
-          const progress = await getUserProgress(user.uid);
-          let totalTimeSeconds = 0;
-          if (progress && progress.lessons) {
-            for (const lessonId in progress.lessons) {
-              if (progress.lessons[lessonId].timeSpentSeconds) {
-                totalTimeSeconds += progress.lessons[lessonId].timeSpentSeconds;
-              }
-            }
-          }
-          await addCourseAuditLog(user.uid, course.id, totalTimeSeconds);
-        } catch (err) {
-          console.error("Error generating audit log:", err);
-        }
-      };
-      fetchTotalTimeAndLog();
+      // The userOverallProgress is already available from our hook
+      let totalTimeSeconds = 0;
+      if (userOverallProgress && userOverallProgress.lessons) {
+        totalTimeSeconds = Object.values(userOverallProgress.lessons).reduce((acc, lesson) => acc + (lesson.timeSpentSeconds || 0), 0);
+      }
+      addCourseAuditLog(user.uid, course.id, totalTimeSeconds)
+        .catch(err => console.error("Error generating audit log:", err));
     }
-  }, [courseCompleted, user, course]);
+  }, [courseCompleted, user, course, userOverallProgress]);
 
   const handleCompleteLesson = async () => {
     if (!user || !currentLesson) return;
@@ -288,16 +189,20 @@ const CoursePlayer = () => {
       setCompletedLessons(prev => new Set(prev).add(currentLesson.id));
     } catch (err) {
       console.error("Error saving progress:", err);
-      setError("Could not save your progress. Please try again.");
+      showNotification("Could not save your progress. Please try again.", "error"); // Use showNotification
     }
   };
 
-  if (loading) {
+  if (courseLoading || progressLoading || !userCourseId) {
     return <div className="loading-container">Loading Course...</div>;
   }
 
-  if (error) {
-    return <div className="error-container">{error}</div>;
+  if (courseError) {
+    return <div className="error-container">{courseError}</div>;
+  }
+
+  if (progressError) {
+    return <div className="error-container">{progressError}</div>;
   }
 
   const handleIdleConfirm = () => {
