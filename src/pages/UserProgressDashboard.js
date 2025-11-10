@@ -1,5 +1,6 @@
 import React from 'react';
 import { useProgressStats } from '../hooks/useProgressStats';
+import { formatTime } from '../utils/formatTime';
 import './UserProgressDashboard.css';
 
 const UserProgressDashboard = () => {
@@ -12,19 +13,6 @@ const UserProgressDashboard = () => {
   if (error) {
     return <div className="progress-dashboard"><h3>Learning Progress</h3><p style={{ color: 'red' }}>{error}</p></div>;
   }
-
-  const formatTime = (totalSeconds) => {
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = Math.floor(totalSeconds % 60);
-
-    let timeString = '';
-    if (hours > 0) timeString += `${hours}h `;
-    if (minutes > 0) timeString += `${minutes}m `;
-    if (hours === 0 && seconds > 0) timeString += `${seconds}s`;
-
-    return timeString.trim() || '0s';
-  };
 
   return (
     <div className="progress-dashboard">
