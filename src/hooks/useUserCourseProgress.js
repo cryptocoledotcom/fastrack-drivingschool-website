@@ -22,14 +22,17 @@ export const useUserCourseProgress = (user) => {
     setError('');
     try {
       const progress = await getUserProgress(user.uid);
+
+      // Set the overall progress regardless of lock status so other UI can use it
       setUserOverallProgress(progress);
-      if (progress && progress.lessons) {
-        if (progress.isLocked) {
-          setError("Your account is locked due to failed identity verification. Please contact support.");
-          return;
-        }
-        const completedLessonIds = Object.keys(progress.lessons).filter(lessonId => progress.lessons[lessonId].completed);
-        setCompletedLessons(new Set(completedLessonIds));
+
+      // Handle locked state first as a guard clause
+      if (progress?.isLocked) {
+        setError("Your account is locked due to failed identity verification. Please contact support.");
+      } else if (progress?.lessons) {
+        // If not locked and lessons exist, process them
+        const completedIds = Object.keys(progress.lessons).filter(id => progress.lessons[id].completed);
+        setCompletedLessons(new Set(completedIds));
       }
     } catch (err) {
       console.error("Error fetching user progress:", err);
@@ -63,7 +66,13 @@ export const useUserCourseProgress = (user) => {
     // 2. Update local state optimistically for immediate UI feedback
     setUserOverallProgress(prev => {
       const newProgress = { ...prev };
-      if (newProgress.lastViewedLesson) delete newProgress.lastViewedLesson[courseId];
+      if (newProgress.lastViewedLesson) {
+        delete newProgress.lastViewedLesson[courseId];
+        // If the lastViewedLesson object is now empty, remove it entirely.
+        if (Object.keys(newProgress.lastViewedLesson).length === 0) {
+          delete newProgress.lastViewedLesson;
+        }
+      }
       if (newProgress.lessons?.[lessonId]) newProgress.lessons[lessonId].completed = true;
       return newProgress;
     });
