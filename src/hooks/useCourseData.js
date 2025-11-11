@@ -25,7 +25,7 @@ export const useCourseData = (courseId) => {
       setLoading(true);
       setError('');
       try {
-        // 1. Fetch the main course document
+        // 1. Fetch the main course document first, as other fetches depend on it.
         const courseRef = doc(db, 'courses', courseId);
         const courseSnap = await getDoc(courseRef);
         if (!courseSnap.exists()) {
@@ -34,16 +34,20 @@ export const useCourseData = (courseId) => {
         const courseData = { id: courseSnap.id, ...courseSnap.data() };
         setCourse(courseData);
 
-        // 2. Fetch all modules for this course
+        // 2. Prepare queries for modules and lessons
         const modulesQuery = query(collection(db, 'modules'), where('courseId', '==', courseId));
-        const modulesSnapshot = await getDocs(modulesQuery);
+        const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
+
+        // 3. Fetch modules and lessons in parallel
+        const [modulesSnapshot, lessonsSnapshot] = await Promise.all([
+          getDocs(modulesQuery),
+          getDocs(lessonsQuery)
+        ]);
+
+        // 4. Process the results
         const modulesData = modulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const sortedModules = modulesData.sort((a, b) => courseData.moduleOrder.indexOf(a.id) - courseData.moduleOrder.indexOf(b.id));
         setModules(sortedModules);
-
-        // 3. Fetch all lessons for this course
-        const lessonsQuery = query(collection(db, 'lessons'), where('courseId', '==', courseId));
-        const lessonsSnapshot = await getDocs(lessonsQuery);
         const lessonsData = {};
         lessonsSnapshot.docs.forEach(doc => {
           lessonsData[doc.id] = { id: doc.id, ...doc.data() };
