@@ -45,7 +45,7 @@ export const useIdentityVerification = ({ user, isCourseActive, onVerificationSt
     } catch (err) {
       console.error("Failed to trigger verification check:", err);
     }
-  }, [user?.uid]);
+  }, [user]);
 
 
   // --- Timer Setup and Cleanup (Fixed Timer Logic - Line 75 fix) ---
