@@ -18,7 +18,9 @@ export const useIdleTimer = (onIdle, timeout) => {
     const events = ['mousemove', 'keypress', 'touchstart', 'scroll'];
 
     const startTimer = () => {
-      clearTimeout(timeoutIdRef.current);
+      if (timeoutIdRef.current) {
+        clearTimeout(timeoutIdRef.current);
+      }
       timeoutIdRef.current = setTimeout(() => {
         onIdleRef.current();
       }, timeout);

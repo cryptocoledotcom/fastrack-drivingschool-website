@@ -19,8 +19,16 @@ jest.mock('../utils/statsCalculator');
 describe('useProgressStats', () => {
   const mockUser = { uid: 'test-user-123' };
 
+  // Centralize console spy to keep tests DRY
+  let consoleErrorSpy;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('should fetch all data, calculate stats, and set the final state', async () => {
@@ -87,9 +95,6 @@ describe('useProgressStats', () => {
     const errorMessage = 'Permission denied';
     getUserProgress.mockRejectedValue(new Error(errorMessage));
 
-    // Suppress console.error for this expected error
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     // Act
     const { result } = renderHook(() => useProgressStats());
 
@@ -99,8 +104,6 @@ describe('useProgressStats', () => {
     expect(result.current.error).toBe('Could not load your progress data.');
     expect(getDocs).not.toHaveBeenCalled();
     expect(calculateProgressStats).not.toHaveBeenCalled();
-
-    consoleErrorSpy.mockRestore();
   });
 
   it('should handle the case where a user has no progress document', async () => {
@@ -132,9 +135,6 @@ describe('useProgressStats', () => {
     getUserProgress.mockResolvedValue(mockUserProgress);
     getDocs.mockRejectedValue(new Error(errorMessage)); // Simulate a failure in one of the getDocs calls
 
-    // Suppress console.error for this expected error
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     // Act
     const { result } = renderHook(() => useProgressStats());
 
@@ -143,7 +143,5 @@ describe('useProgressStats', () => {
 
     expect(result.current.error).toBe('Could not load your progress data.');
     expect(calculateProgressStats).not.toHaveBeenCalled();
-
-    consoleErrorSpy.mockRestore();
   });
 });
