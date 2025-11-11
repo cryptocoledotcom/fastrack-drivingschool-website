@@ -33,18 +33,22 @@ export const useProgressStats = () => {
       try {
         setLoading(true);
 
-        const [userProgress, modulesSnapshot, lessonsSnapshot, quizzesSnapshot, testsSnapshot] = await Promise.all([
-          getUserProgress(user.uid),
+        // 1. Fetch user progress first.
+        const userProgress = await getUserProgress(user.uid);
+
+        // 2. If there's no progress, we can stop early.
+        if (!userProgress) {
+          setLoading(false);
+          return;
+        }
+
+        // 3. Fetch the rest of the data now that we know we need it.
+        const [modulesSnapshot, lessonsSnapshot, quizzesSnapshot, testsSnapshot] = await Promise.all([
           getDocs(query(collection(db, 'modules'))),
           getDocs(query(collection(db, 'lessons'))),
           getDocs(query(collection(db, 'quizzes'))),
           getDocs(query(collection(db, 'tests'))),
         ]);
-
-        if (!userProgress) {
-          setLoading(false);
-          return;
-        }
 
         const calculatedStats = calculateProgressStats(
           userProgress,
