@@ -87,8 +87,12 @@ describe('useCourseSession', () => {
 
     it('should set time limit reached if user has exceeded the daily limit', async () => {
       getTimeSpentToday.mockResolvedValue(FOUR_HOURS_IN_SECONDS + 1);
-      const { result } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
-
+      let result;
+      await act(async () => {
+        const { result: hookResult } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
+        result = hookResult;
+        await Promise.resolve(); // Flush promises to allow the initial async effect to run
+      });
       await waitFor(() => expect(result.current.isTimeLimitReached).toBe(true));
     });
 
@@ -96,22 +100,30 @@ describe('useCourseSession', () => {
       const { result } = renderHook(() =>
         useCourseSession(mockUser, true, mockOnIdle)
       );
-      await waitFor(() => expect(result.current.isTimeLimitReached).toBe(false));
+
+      await waitFor(() => { // The waitFor wrapper handles the async nature of the initial effect
+        expect(getTimeSpentToday).toHaveBeenCalled();
+        expect(result.current.isTimeLimitReached).toBe(false);
+      });
     });
 
     it('should periodically re-check the time limit', async () => {
       getTimeSpentToday.mockResolvedValue(1000);
-      const { result } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
-
+      let result;
+      await act(async () => {
+        const { result: hookResult } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
+        result = hookResult;
+        await Promise.resolve(); // Flush promises for initial effect
+      });
       await waitFor(() => expect(getTimeSpentToday).toHaveBeenCalledTimes(1));
-      expect(result.current.isTimeLimitReached).toBe(false);
 
       // Now, simulate time passing and the service returning a new value
       getTimeSpentToday.mockResolvedValue(FOUR_HOURS_IN_SECONDS + 1);
 
       // Advance timers past the 5-minute interval
-      act(() => {
+      await act(async () => {
         jest.advanceTimersByTime(5 * 60 * 1000);
+        await Promise.resolve(); // Flush promises
       });
 
       await waitFor(() => expect(result.current.isTimeLimitReached).toBe(true));

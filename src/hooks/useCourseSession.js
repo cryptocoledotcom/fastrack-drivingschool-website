@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, act } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useIdleTimer } from './useIdleTimer';
 import { getTimeSpentToday } from '../services/userProgressFirestoreService';
 
@@ -41,21 +41,17 @@ export const useCourseSession = (user, isCourseActive, onIdle) => {
       try {
         const totalTimeTodaySeconds = await getTimeSpentToday(user.uid);
         if (totalTimeTodaySeconds >= FOUR_HOURS_IN_SECONDS) {
-          act(() => {
-            setIsTimeLimitReached(true);
-            const now = new Date();
-            const nextLearningDay = new Date(now);
-            if (now.getHours() >= 12) {
-              nextLearningDay.setDate(now.getDate() + 1);
-            }
-            nextLearningDay.setHours(12, 0, 0, 0);
-            setResumeTimeMessage(`You have completed the state maximum of 4 hours per 24-hour block. You may continue your next learning journey after ${nextLearningDay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on ${nextLearningDay.toLocaleDateString()}.`);
-          });
+          setIsTimeLimitReached(true);
+          const now = new Date();
+          const nextLearningDay = new Date(now);
+          if (now.getHours() >= 12) {
+            nextLearningDay.setDate(now.getDate() + 1);
+          }
+          nextLearningDay.setHours(12, 0, 0, 0);
+          setResumeTimeMessage(`You have completed the state maximum of 4 hours per 24-hour block. You may continue your next learning journey after ${nextLearningDay.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} on ${nextLearningDay.toLocaleDateString()}.`);
         } else {
-          act(() => {
-            setIsTimeLimitReached(false);
-            setResumeTimeMessage('');
-          });
+          setIsTimeLimitReached(false);
+          setResumeTimeMessage('');
         }
       } catch (error) {
         console.error("Failed to check daily time limit:", error);
