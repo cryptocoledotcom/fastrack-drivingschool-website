@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { formatTime } from '../../utils/formatTime';
-import './Modal.css';
+import './Modals.css';
 
 const BREAK_DURATION_SECONDS = 10 * 60;
 
-const BreakModal = ({ isOpen }) => {
+const BreakTimerModal = ({ isOpen }) => {
   const [countdown, setCountdown] = useState(BREAK_DURATION_SECONDS);
 
   useEffect(() => {
@@ -39,4 +39,4 @@ const BreakModal = ({ isOpen }) => {
   );
 };
 
-export default BreakModal;
+export default BreakTimerModal;

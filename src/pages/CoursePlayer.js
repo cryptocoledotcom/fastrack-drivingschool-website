@@ -15,6 +15,7 @@ import IdleModal from '../components/modals/IdleModal';
 import VideoPlayer from '../components/VideoPlayer';
 import CourseSidebar from '../components/CourseSidebar';
 import TimeLimitModal from '../components/modals/TimeLimitModal';
+import BreakTimerModal from '../components/modals/BreakTimerModal'; // Import the renamed break modal
 import { useCourseSession } from '../hooks/useCourseSession'; // Import the new session hook
 import { findFirstUncompletedLesson } from '../utils/courseUtils';
 
@@ -236,6 +237,9 @@ const CoursePlayer = () => {
         isOpen={isTimeLimitReached}
         onClose={sessionActions.closeTimeLimitModal}
         message={resumeTimeMessage}
+      />
+      <BreakTimerModal
+        isOpen={isBreakModalOpen}
       />
       <IdentityVerificationModal
         isOpen={isVerificationModalOpen}
