@@ -9,6 +9,7 @@ import { useTimeTracker } from '../hooks/useTimeTracker';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
 import { useNotification } from '../components/Notification/NotificationContext'; // Import useNotification
 import { useCourseData } from '../hooks/useCourseData'; // Import the new hook
+import { useBreakTimer } from '../hooks/useBreakTimer'; // Import the break timer hook
 import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Import the new progress hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 import IdleModal from '../components/modals/IdleModal';
@@ -32,6 +33,15 @@ const CoursePlayer = () => {
   const playerRef = useRef(null); // A single ref for the new VideoPlayer component
   const isCourseActive = currentLesson && !completedLessons.has(currentLesson.id);
 
+  // --- START: MANDATORY BREAK HOOK ---
+  const [isBreakModalOpen, setIsBreakModalOpen] = useState(false);
+  const { isOnBreak } = useBreakTimer({
+    showBreakModal: () => setIsBreakModalOpen(true),
+    hideBreakModal: () => setIsBreakModalOpen(false),
+  });
+  // --- END: MANDATORY BREAK HOOK ---
+
+
   // --- Identity Verification Hook ---
   const {
     isVerificationModalOpen,
@@ -54,7 +64,7 @@ const CoursePlayer = () => {
     isCourseActive,
     () => {
       // Prevent idle modal if verification modal is already open
-      if (!isVerificationModalOpen) {
+      if (!isVerificationModalOpen && !isBreakModalOpen) {
         playerRef.current?.pause();
       }
     }
@@ -63,6 +73,15 @@ const CoursePlayer = () => {
 
   // --- Time Tracking Hook ---
   const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons, playerRef);
+
+  // Effect to pause the video when a break starts
+  useEffect(() => {
+    if (isOnBreak) {
+      playerRef.current?.pause();
+    } else {
+      // Optional: auto-play when break ends, if it was playing before.
+    }
+  }, [isOnBreak]);
 
   useEffect(() => {
     const findUserCourse = async () => {
@@ -243,7 +262,7 @@ const CoursePlayer = () => {
       />
       <IdentityVerificationModal
         isOpen={isVerificationModalOpen}
-        question={verificationQuestion.question}
+        question={verificationQuestion?.question || ''}
         onSubmit={handleVerificationSubmit}
         error={verificationError}
         attemptsLeft={verificationAttempts}
