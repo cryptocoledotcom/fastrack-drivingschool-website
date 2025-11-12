@@ -104,6 +104,27 @@ describe('useIdentityVerification', () => {
       expect(result.current.verificationError).toBe('');
     });
 
+    it('should trigger verification manually when triggerVerificationNow is called', async () => {
+      const { result } = renderHook(() => useIdentityVerification({
+        user: mockUser,
+        isCourseActive: false, // Timer is off, so this must be a manual trigger
+        onVerificationStart: mockOnVerificationStart,
+      }));
+
+      // Ensure timer has not run
+      expect(setInterval).not.toHaveBeenCalled();
+
+      // Manually trigger the verification process
+      await act(async () => {
+        result.current.actions.triggerVerificationNow();
+        await Promise.resolve(); // Flush promises
+      });
+
+      expect(mockOnVerificationStart).toHaveBeenCalledTimes(1);
+      expect(getRandomSecurityQuestion).toHaveBeenCalledWith(mockUser.uid);
+      expect(result.current.isVerificationModalOpen).toBe(true);
+    });
+
     it('should handle successful verification', async () => {
       const { result } = renderHook(() => useIdentityVerification({
         user: mockUser,

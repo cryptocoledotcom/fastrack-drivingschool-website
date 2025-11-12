@@ -15,6 +15,7 @@ import { IdentityVerificationModal } from '../components/IdentityVerificationMod
 import IdleModal from '../components/modals/IdleModal';
 import VideoPlayer from '../components/VideoPlayer';
 import CourseSidebar from '../components/CourseSidebar';
+import ActivityLesson from '../components/lessons/ActivityLesson'; // Import the new component
 import TimeLimitModal from '../components/modals/TimeLimitModal';
 import BreakTimerModal from '../components/modals/BreakTimerModal'; // Import the renamed break modal
 import { useCourseSession } from '../hooks/useCourseSession'; // Import the new session hook
@@ -214,33 +215,41 @@ const CoursePlayer = () => {
         ) : currentLesson ? (
           <div>
             <h2>{currentLesson.title}</h2>
-            <VideoPlayer
-              ref={playerRef}
-              lesson={currentLesson}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              user={user}
-              onAllVideosWatched={setAllVideosWatched}
-              userOverallProgress={userOverallProgress}
-              completedLessons={completedLessons}
-            />
-            <div className="lesson-description-box">
-              <p>
-                {currentLesson.content || "No description available."}
-              </p>
-            </div>
-            <div className="lesson-actions">
-              {!completedLessons.has(currentLesson.id) && (
-                <button 
-                    onClick={handleCompleteLesson} 
-                    className="btn btn-primary"
-                    disabled={!allVideosWatched}
-                    title={!allVideosWatched ? "You must finish all videos to continue." : ""}
-                >
-                  {allVideosWatched ? 'Mark as Complete' : 'Finish the video(s) to continue'}
-                </button> 
-              )}
-            </div>
+            {currentLesson.type === 'activity' ? (
+              <ActivityLesson 
+                lesson={currentLesson}
+                user={user}
+                onComplete={handleCompleteLesson}
+              />
+            ) : (
+              <>
+                <VideoPlayer
+                  ref={playerRef}
+                  lesson={currentLesson}
+                  onPlay={handlePlay}
+                  onPause={handlePause}
+                  user={user}
+                  onAllVideosWatched={setAllVideosWatched}
+                  userOverallProgress={userOverallProgress}
+                  completedLessons={completedLessons}
+                />
+                <div className="lesson-description-box">
+                  <p>{currentLesson.content || "No description available."}</p>
+                </div>
+                <div className="lesson-actions">
+                  {!completedLessons.has(currentLesson.id) && (
+                    <button 
+                        onClick={handleCompleteLesson} 
+                        className="btn btn-primary"
+                        disabled={!allVideosWatched}
+                        title={!allVideosWatched ? "You must finish all videos to continue." : ""}
+                    >
+                      {allVideosWatched ? 'Mark as Complete' : 'Finish the video(s) to continue'}
+                    </button> 
+                  )}
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="no-lesson-selected">

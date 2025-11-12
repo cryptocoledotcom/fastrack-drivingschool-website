@@ -160,5 +160,8 @@ export const useIdentityVerification = ({ user, isCourseActive, onVerificationSt
     verificationError,
     verificationAttempts,
     handleVerificationSubmit,
+    actions: {
+      triggerVerificationNow: triggerVerification,
+    }
   };
 };
