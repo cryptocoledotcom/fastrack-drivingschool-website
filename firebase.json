@@ -17,11 +17,17 @@
     "rules": "firestore.rules"
   },
   "hosting": {
-    "public": "public",
+    "public": "placeholder",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
     ]
   }
 }
