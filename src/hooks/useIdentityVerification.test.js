@@ -1,6 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useIdentityVerification } from './useIdentityVerification';
-import { getRandomSecurityQuestion, hashText, lockUserAccount, logVerificationAttempt } from '../services/userProgressFirestoreService';
+import { getRandomSecurityQuestion, hashText, lockUserAccount, logIdentityVerificationAttempt } from '../services/userProgressFirestoreService';
 
 // Mock the service dependencies
 jest.mock('../services/userProgressFirestoreService');
@@ -36,7 +36,7 @@ describe('useIdentityVerification', () => {
     jest.spyOn(global, 'clearInterval');
     hashText.mockImplementation(async (text) => `hashed-${text}`);
     lockUserAccount.mockResolvedValue(undefined);
-    logVerificationAttempt.mockResolvedValue(undefined);
+    logIdentityVerificationAttempt.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -125,6 +125,12 @@ describe('useIdentityVerification', () => {
       expect(result.current.isVerificationModalOpen).toBe(false);
       expect(result.current.verificationError).toBe('');
       expect(mockOnVerificationSuccess).toHaveBeenCalledTimes(1);
+      expect(logIdentityVerificationAttempt).toHaveBeenCalledWith(mockUser.uid, {
+        question: mockQuestion.question,
+        userResponse: 'blue',
+        result: 'Pass',
+        action: 'Successful Validation',
+      });
     });
 
     it('should handle incorrect answers and decrement attempts', async () => {
@@ -147,6 +153,12 @@ describe('useIdentityVerification', () => {
       expect(result.current.verificationError).toBe('Incorrect answer. You have 2 attempt(s) remaining.');
       expect(result.current.isVerificationModalOpen).toBe(true); // Modal stays open
       expect(lockUserAccount).not.toHaveBeenCalled();
+      expect(logIdentityVerificationAttempt).toHaveBeenCalledWith(mockUser.uid, {
+        question: mockQuestion.question,
+        userResponse: 'red',
+        result: 'Fail',
+        action: 'Attempt Failed (2/3 remaining)',
+      });
     });
 
     it('should lock account after 3 failed attempts', async () => {
@@ -170,9 +182,11 @@ describe('useIdentityVerification', () => {
       expect(result.current.verificationAttempts).toBe(0);
       expect(result.current.verificationError).toContain('your account has been locked');
       expect(lockUserAccount).toHaveBeenCalledWith(mockUser.uid);
-      expect(logVerificationAttempt).toHaveBeenCalledWith(mockUser.uid, {
+      expect(logIdentityVerificationAttempt).toHaveBeenCalledWith(mockUser.uid, {
         question: mockQuestion.question,
-        wasSuccessful: false,
+        userResponse: 'wrong',
+        result: 'Fail',
+        action: 'Account Locked',
       });
       expect(mockOnVerificationFail).toHaveBeenCalledTimes(1);
     });

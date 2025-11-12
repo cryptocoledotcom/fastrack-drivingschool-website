@@ -325,24 +325,30 @@ export const getSecurityQuestions = async (userId) => {
 };
 
 /**
- * Logs an identity verification attempt.
+ * Logs a detailed, immutable record of an identity verification attempt to a dedicated audit collection.
  * @param {string} userId The ID of the user.
- * @param {object} logData The data to log (e.g., { question, wasSuccessful, attemptsFailed }).
+ * @param {object} logData The detailed data for the audit log.
+ * @param {string} logData.question The question that was asked.
+ * @param {string} logData.userResponse The exact response from the user.
+ * @param {string} logData.result The outcome of the attempt ('Pass' or 'Fail').
+ * @param {string} logData.action The action taken by the system (e.g., 'Successful Validation', 'Account Locked').
  * @returns {Promise<void>}
  */
-export const logVerificationAttempt = async (userId, logData) => {
+export const logIdentityVerificationAttempt = async (userId, logData) => {
   if (!userId || !logData) return;
   try {
-    const verificationLogRef = collection(db, `users/${userId}/verificationLog`);
-    await addDoc(verificationLogRef, {
+    // Use a top-level collection for easier auditing and stricter security rules.
+    const auditLogRef = collection(db, 'identity_verification_audits');
+    await addDoc(auditLogRef, {
+      userId,
       ...logData,
       timestamp: serverTimestamp(),
     });
   } catch (error) {
-    console.error("Error logging verification attempt:", error);
+    console.error("Error logging identity verification attempt:", error);
     throw error;
   }
-}
+};
 
 /**
  * Fetches a single random security question for the user.

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { hashText, getRandomSecurityQuestion, lockUserAccount, logVerificationAttempt } from '../services/userProgressFirestoreService';
+import { hashText, getRandomSecurityQuestion, lockUserAccount, logIdentityVerificationAttempt } from '../services/userProgressFirestoreService';
 
 /**
  * A custom hook to manage periodic identity verification.
@@ -107,11 +107,13 @@ export const useIdentityVerification = ({ user, isCourseActive, onVerificationSt
       setVerificationAttempts(3); // Reset attempts on successful verification (Fix for successful flow)
       callbackRef.current.onVerificationSuccess?.();
 
-      // Log success (Must await promise resolve in tests)
-      logVerificationAttempt(user.uid, { 
+      // Log detailed success event for audit trail
+      logIdentityVerificationAttempt(user.uid, {
         question: verificationQuestion.question, 
-        wasSuccessful: true 
-      }).catch(err => console.error("Error writing success record:", err));
+        userResponse: userAnswer, // Record the exact response
+        result: 'Pass',
+        action: 'Successful Validation'
+      }).catch(err => console.error("Error writing success audit log:", err));
 
     } else {
       // FAILURE PATH: DECREMENT ATTEMPTS (Lines 137, 160 fix)
@@ -123,12 +125,13 @@ export const useIdentityVerification = ({ user, isCourseActive, onVerificationSt
           setVerificationError('You have failed identity verification and your account has been locked.');
           
           // Execute async lockout/fail logic
-          lockUserAccount(user.uid)
-            .then(() => logVerificationAttempt(user.uid, { 
-              question: verificationQuestion.question, 
-              wasSuccessful: false 
-            }))
-            .catch(err => console.error("Error writing lockout record:", err));
+          lockUserAccount(user.uid).catch(err => console.error("Error locking account:", err));
+          logIdentityVerificationAttempt(user.uid, {
+            question: verificationQuestion.question,
+            userResponse: userAnswer,
+            result: 'Fail',
+            action: 'Account Locked'
+          }).catch(err => console.error("Error writing lockout audit log:", err));
           
           callbackRef.current.onVerificationFail?.();
           setIsVerificationModalOpen(false); // Close modal on lockout
@@ -136,6 +139,12 @@ export const useIdentityVerification = ({ user, isCourseActive, onVerificationSt
         } else {
           // Failure, but attempts remain
           setVerificationError(`Incorrect answer. You have ${newAttemptsLeft} attempt(s) remaining.`);
+          logIdentityVerificationAttempt(user.uid, {
+            question: verificationQuestion.question,
+            userResponse: userAnswer,
+            result: 'Fail',
+            action: `Attempt Failed (${newAttemptsLeft}/3 remaining)`
+          }).catch(err => console.error("Error writing failure audit log:", err));
         }
         
         // This return value updates the state used for assertions
