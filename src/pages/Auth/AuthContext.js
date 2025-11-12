@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../../Firebase"; // Import db
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
+import { logSessionEvent } from '../../services/userProgressFirestoreService';
 import { doc, getDoc } from "firebase/firestore"; // Import doc and getDoc
 import { getUserRole } from "../../services/authService";
 
@@ -39,12 +40,21 @@ export const AuthProvider = ({ children }) => {
       throw new Error('ACCOUNT_LOCKED');
     }
 
+    // If not locked, log the successful login event for our audit trail.
+    await logSessionEvent('login');
+
     // If not locked, return the user credential as normal.
     return userCredential;
   };
 
-  const logout = () => {
-    signOut(auth);
+  const logout = async () => {
+    // First, log the logout event to our secure backend function.
+    // We use await to ensure this completes before signing out, but we don't
+    // block the sign-out if the logging fails (the service function handles the error).
+    await logSessionEvent('logout');
+
+    // Then, sign the user out from Firebase Authentication.
+    await signOut(auth);
   };
 
   return (

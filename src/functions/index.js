@@ -1,6 +1,10 @@
 const functions = require("firebase-functions");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
+const admin = require('firebase-admin');
+
+// Initialize the Admin SDK
+admin.initializeApp();
 
 // Initialize Secret Manager client
 const secretsClient = new SecretManagerServiceClient();
@@ -41,4 +45,40 @@ exports.generateContent = functions.https.onCall(async (data, context) => {
     console.error('Gemini API call failed:', error);
     throw new functions.https.HttpsError('internal', 'AI generation failed.', error.message);
   }
+});
+
+/**
+ * Logs a session event (like login or logout) to a dedicated audit collection.
+ * This function must be called by an authenticated user.
+ */
+exports.logSessionEvent = functions.https.onCall(async (data, context) => {
+  // 1. Authentication Check: Ensure the user is logged in.
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'The function must be called by an authenticated user.'
+    );
+  }
+
+  // 2. Validate Input: Ensure an event type was passed.
+  const eventType = data.eventType;
+  if (!eventType || (eventType !== 'login' && eventType !== 'logout')) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'The function must be called with a valid "eventType" ("login" or "logout").'
+    );
+  }
+
+  const logData = {
+    userId: context.auth.uid,
+    eventType: eventType,
+    ipAddress: context.rawRequest.ip, // Securely captured on the backend
+    timestamp: admin.firestore.FieldValue.serverTimestamp(), // Use server time for accuracy
+    userAgent: context.rawRequest.headers['user-agent'] || null,
+  };
+
+  // 3. Write to Firestore
+  await admin.firestore().collection('session_events').add(logData);
+
+  return { success: true, log: logData };
 });

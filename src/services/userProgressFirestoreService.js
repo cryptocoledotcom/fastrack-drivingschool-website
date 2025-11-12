@@ -1,7 +1,23 @@
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, deleteDoc, increment, deleteField, addDoc, collection } from 'firebase/firestore';
-import { db } from '../Firebase'; // Corrected path to your Firebase config
+import { db, functions } from '../Firebase'; // Import functions
+import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
 
 const USER_PROGRESS_COLLECTION = 'userProgress';
+
+/**
+ * Calls the backend Firebase Function to log a session event.
+ * @param {'login' | 'logout'} eventType The type of event to log.
+ */
+export const logSessionEvent = async (eventType) => {
+  try {
+    const logEventFunction = httpsCallable(functions, 'logSessionEvent');
+    await logEventFunction({ eventType });
+  } catch (error) {
+    // Log the error to the console for debugging, but don't re-throw it.
+    // We don't want a logging failure to prevent the user from logging in or out.
+    console.error(`Failed to log session event '${eventType}':`, error);
+  }
+};
 
 /**
  * Retrieves the progress for a specific user.

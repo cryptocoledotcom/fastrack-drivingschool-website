@@ -101,20 +101,15 @@ describe('useCourseSession', () => {
         useCourseSession(mockUser, true, mockOnIdle)
       );
 
-      await waitFor(() => { // The waitFor wrapper handles the async nature of the initial effect
-        expect(getTimeSpentToday).toHaveBeenCalled();
-        expect(result.current.isTimeLimitReached).toBe(false);
-      });
+      // The waitFor wrapper handles the async nature of the initial effect
+      await waitFor(() => expect(getTimeSpentToday).toHaveBeenCalled());
+      expect(result.current.isTimeLimitReached).toBe(false);
     });
 
     it('should periodically re-check the time limit', async () => {
       getTimeSpentToday.mockResolvedValue(1000);
-      let result;
-      await act(async () => {
-        const { result: hookResult } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
-        result = hookResult;
-        await Promise.resolve(); // Flush promises for initial effect
-      });
+      const { result } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
+
       await waitFor(() => expect(getTimeSpentToday).toHaveBeenCalledTimes(1));
 
       // Now, simulate time passing and the service returning a new value
