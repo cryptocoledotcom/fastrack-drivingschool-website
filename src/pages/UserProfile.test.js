@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import UserProfile from './UserProfile';
 import { useAuth } from './Auth/AuthContext';
@@ -135,7 +135,9 @@ describe('UserProfile Component', () => {
     await screen.findByText('Profile Display');
 
     const editButton = screen.getByRole('button', { name: /edit profile/i });
-    await userEvent.click(editButton);
+    await act(async () => {
+      await userEvent.click(editButton);
+    });
 
     expect(screen.getByText('Profile Edit Form')).toBeInTheDocument();
   });

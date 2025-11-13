@@ -13,6 +13,7 @@ import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Impor
 import { useCurrentLesson } from '../hooks/useCurrentLesson'; // Import the new hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 import IdleModal from '../components/modals/IdleModal';
+import { useCourseCompletionAudit } from '../hooks/useCourseCompletionAudit';
 import { useSaveOnExit as useSaveOnExitHook } from '../hooks/useSaveOnExit';
 import { usePlayerLesson } from '../hooks/usePlayerLesson';
 import { useLessonCompletion } from '../hooks/useLessonCompletion';
@@ -89,6 +90,13 @@ const CoursePlayer = () => {
   // --- Time Tracking Hook ---
   const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons, playerRef);
 
+  // --- Course Completion Audit Hook ---
+  useCourseCompletionAudit({
+    courseCompleted,
+    user,
+    course,
+    userOverallProgress,
+  });
   // --- Save on Exit Hook ---
   useSaveOnExitHook({
     user,
@@ -125,18 +133,6 @@ const CoursePlayer = () => {
       verificationActions.triggerVerificationNow();
     }
   }, [currentLesson, verificationActions]);
-
-  useEffect(() => {
-    if (courseCompleted && user && course) {
-      // The userOverallProgress is already available from our hook
-      let totalTimeSeconds = 0;
-      if (userOverallProgress && userOverallProgress.lessons) {
-        totalTimeSeconds = Object.values(userOverallProgress.lessons).reduce((acc, lesson) => acc + (lesson.timeSpentSeconds || 0), 0);
-      }
-      addCourseAuditLog(user.uid, course.id, totalTimeSeconds)
-        .catch(err => console.error("Error generating audit log:", err));
-    }
-  }, [courseCompleted, user, course, userOverallProgress]);
 
   if (courseLoading || progressLoading || userCourseIdLoading) {
     return <div className="loading-container">Loading Course...</div>;
