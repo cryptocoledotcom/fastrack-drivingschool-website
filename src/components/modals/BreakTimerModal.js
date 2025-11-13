@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import Modal from 'react-modal';
 import { formatTime } from '../../utils/formatTime';
-import './Modals.css';
 
 const BREAK_DURATION_SECONDS = 10 * 60;
 
-const BreakTimerModal = ({ isOpen, onResume }) => {
+const BreakTimerModal = ({ isOpen, onResume, _test_isBreakOver = false }) => {
   const [countdown, setCountdown] = useState(BREAK_DURATION_SECONDS);
-  const [isBreakOver, setIsBreakOver] = useState(false);
+  const [isBreakOver, setIsBreakOver] = useState(_test_isBreakOver);
 
   useEffect(() => {
-    if (isOpen) {
+    // Only start the timer if the modal is open AND we are not forcing the "break over" state for a story.
+    if (isOpen && !_test_isBreakOver) {
       // Reset countdown when modal opens
       setCountdown(BREAK_DURATION_SECONDS);
       setIsBreakOver(false);
@@ -29,7 +29,7 @@ const BreakTimerModal = ({ isOpen, onResume }) => {
       // Cleanup interval on component unmount or when modal closes
       return () => clearInterval(interval);
     }
-  }, [isOpen]);
+  }, [isOpen, _test_isBreakOver, isBreakOver]);
 
   return (
     <Modal
@@ -45,10 +45,20 @@ const BreakTimerModal = ({ isOpen, onResume }) => {
       {isBreakOver ? (
         <div className="break-over-actions">
           <p>Your break is over. You may now resume the course.</p>
-          <button onClick={onResume} className="btn btn-primary">Resume Course</button>
+          <button 
+            onClick={onResume} 
+            className="btn btn-primary btn-resume"
+          >
+            Resume Course
+          </button>
         </div>
       ) : (
-        <p className="modal-timer">Time Remaining: <strong>{formatTime(countdown)}</strong></p>
+        <div className="modal-timer">
+          <p>
+          Time Remaining: 
+          <strong>{formatTime(countdown)}</strong>
+          </p>
+        </div>
       )}
     </Modal>
   );

@@ -20,12 +20,12 @@
   width: 90%;
   text-align: center;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  color: var(--primary-color); /* Use primary color variable for text on a white background */
+  color: var(--dark-gray); /* Use dark gray for text on a white background */
 }
 
 .modal-content h2 {
   margin-top: 0;
-  color: var(--black); /* Correctly use the primary color variable */
+  color: var(--primary-color); /* Correctly use the primary color variable */
 }
 
 .modal-content p {
@@ -57,5 +57,18 @@
 }
 
 .break-timer-modal-content h2 {
-  color: var(--danger-color);
+  color: var(--primary-color);
+}
+
+/* --- Style for the "Resume Course" button specifically --- */
+.break-timer-modal-content .btn-resume {
+  background-color: var(--secondary-color);
+  padding: 20px 40px; /* Make the button larger */
+  font-size: 1.5rem;   /* Increase the font size */
+  color: var(--white); /* Ensure the text is white */
+  border-radius: 8px;  /* Add rounded corners */
+}
+
+.break-timer-modal-content .btn-resume:hover {
+  background-color: var(--secondary-color-hover);
 }

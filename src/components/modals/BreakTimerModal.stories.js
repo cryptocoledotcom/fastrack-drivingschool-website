@@ -1,6 +1,5 @@
 import React from 'react';
 import BreakTimerModal from './BreakTimerModal';
-import { screen, userEvent, waitFor } from '@storybook/testing-library';
 import '../../App.css'; // Import global styles to apply variables
 import './Modals.css'; // Import modal-specific styles
 
@@ -32,15 +31,9 @@ export const DefaultOpen = {
 export const BreakOver = {
   args: {
     isOpen: true,
-    // We can mock the onResume function to see it in the Storybook actions panel
-    onResume: () => console.log('Resume button clicked!'),
-  },
-  play: async () => {
-    // This 'play' function simulates time passing to show the final state.
-    // It requires the @storybook/testing-library addon.
-    // We need to tell Storybook to mock the date and time.
-    await new Promise(resolve => setTimeout(resolve, 100)); // Allow component to render
-    const now = new Date();
-    Date.now = () => now.getTime() + 10 * 60 * 1000; // Fast-forward 10 minutes
+    // By passing this special prop, we force the component into the "break over" state
+    // without needing to wait for any timers.
+    _test_isBreakOver: true,
+    onResume: () => alert('Resume button clicked!'),
   },
 };
