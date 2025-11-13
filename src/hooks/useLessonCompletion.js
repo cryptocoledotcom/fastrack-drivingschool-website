@@ -13,7 +13,10 @@ export const useLessonCompletion = ({ user, currentLesson, courseId, progressAct
   const { showNotification } = useNotification();
   const [allVideosWatched, setAllVideosWatched] = useState(false);
 
-  const isCompletable = currentLesson?.type !== 'activity' ? allVideosWatched : true;
+  // A lesson is completable if it's an activity, or if it's a video-based lesson
+  // and all its videos have been watched. This is safer than a simple != 'video' check.
+  const isCompletable =
+    currentLesson?.type === 'activity' ? true : allVideosWatched;
 
   // When the lesson changes, reset the video watched status.
   useEffect(() => {
