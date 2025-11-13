@@ -10,6 +10,7 @@ import { useCourseData } from '../hooks/useCourseData'; // Import the new hook
 import { useBreakTimer } from '../hooks/useBreakTimer'; // Import the break timer hook
 import { useUserCourseId } from '../hooks/useUserCourseId'; // Import the new hook
 import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Import the new progress hook
+import { useCurrentLesson } from '../hooks/useCurrentLesson'; // Import the new hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 import IdleModal from '../components/modals/IdleModal';
 import VideoPlayer from '../components/VideoPlayer';
@@ -18,7 +19,6 @@ import ActivityLesson from '../components/lessons/ActivityLesson'; // Import the
 import TimeLimitModal from '../components/modals/TimeLimitModal';
 import BreakTimerModal from '../components/modals/BreakTimerModal'; // Import the renamed break modal
 import { useCourseSession } from '../hooks/useCourseSession'; // Import the new session hook
-import { findFirstUncompletedLesson } from '../utils/courseUtils';
 
 const CoursePlayer = () => {
   const { courseId } = useParams();
@@ -27,8 +27,13 @@ const CoursePlayer = () => {
   const { course, modules, lessons, loading: courseLoading, error: courseError } = useCourseData(courseId); 
   const { userCourseId, loading: userCourseIdLoading, error: userCourseIdError } = useUserCourseId(user, courseId);
   const { userOverallProgress, completedLessons, loading: progressLoading, error: progressError, actions } = useUserCourseProgress(user);
-  const [currentLesson, setCurrentLesson] = useState(null);
-  const [courseCompleted, setCourseCompleted] = useState(false);
+  const { currentLesson, courseCompleted } = useCurrentLesson({
+    courseLoading, progressLoading, modules, lessons,
+    userOverallProgress, completedLessons, courseId
+  });
+  // Local state for the player itself
+  const [localCurrentLesson, setLocalCurrentLesson] = useState(null);
+
   const [allVideosWatched, setAllVideosWatched] = useState(false);
   const playerRef = useRef(null); // A single ref for the new VideoPlayer component
   const isCourseActive = currentLesson && !completedLessons.has(currentLesson.id);
@@ -87,35 +92,10 @@ const CoursePlayer = () => {
     }
   }, [isOnBreak]);
 
-  // Main logic effect to determine the current lesson
+  // Effect to sync the current lesson from the hook to local state
   useEffect(() => {
-    if (courseLoading || progressLoading || modules.length === 0 || Object.keys(lessons).length === 0 || !userOverallProgress) return;
-
-    const allLessonsCount = modules.reduce((acc, m) => acc + m.lessonOrder.length, 0);
-    if (allLessonsCount > 0 && completedLessons.size === allLessonsCount) {
-      setCourseCompleted(true);
-      setCurrentLesson(null);
-      return;
-    }
-
-    const lastViewedLessonId = userOverallProgress.lastViewedLesson?.[courseId];
-    const nextLessonId = (lastViewedLessonId && lessons[lastViewedLessonId]) 
-      ? lastViewedLessonId 
-      : findFirstUncompletedLesson(modules, completedLessons) || modules[0]?.lessonOrder[0];
-    
-    if (nextLessonId && lessons[nextLessonId]) {
-      setCurrentLesson({ ...lessons[nextLessonId] });
-    } else {
-      setCurrentLesson(null);
-    }
-  }, [modules, lessons, completedLessons, courseLoading, progressLoading, user, userOverallProgress, courseId]);
-
-  useEffect(() => {
-    // Effect to pause the video if the time limit is reached by the session hook
-    if (isTimeLimitReached) {
-      playerRef.current?.pause();
-    }
-  }, [isTimeLimitReached]);
+    setLocalCurrentLesson(currentLesson);
+  }, [currentLesson]);
 
   useEffect(() => {
     if (user && courseId && currentLesson && !completedLessons.has(currentLesson.id)) {
@@ -124,6 +104,13 @@ const CoursePlayer = () => {
   }, [user, courseId, currentLesson, completedLessons]);
 
   // Trigger identity verification when a test starts
+  useEffect(() => {
+    // Effect to pause the video if the time limit is reached by the session hook
+    if (isTimeLimitReached) {
+      playerRef.current?.pause();
+    }
+  }, [isTimeLimitReached]);
+
   useEffect(() => {
     if (currentLesson?.type === 'test') {
       verificationActions.triggerVerificationNow();
@@ -189,8 +176,8 @@ const CoursePlayer = () => {
   const handleLessonClick = (lessonId) => {
     const newLesson = lessons[lessonId];
     if (newLesson) {
-      setCurrentLesson(newLesson);
-      setAllVideosWatched(false); // Reset watch status for the new lesson
+      setLocalCurrentLesson(newLesson);
+      setAllVideosWatched(false);
     }
   };
 
@@ -201,7 +188,7 @@ const CoursePlayer = () => {
         modules={modules}
         lessons={lessons}
         completedLessons={completedLessons}
-        currentLesson={currentLesson}
+        currentLesson={localCurrentLesson}
         onLessonClick={handleLessonClick}
       />
 
@@ -211,10 +198,10 @@ const CoursePlayer = () => {
             <h2>Congratulations!</h2>
             <p>You have completed the course: {course?.title}</p>
           </div>
-        ) : currentLesson ? (
+        ) : localCurrentLesson ? (
           <div>
-            <h2>{currentLesson.title}</h2>
-            {currentLesson.type === 'activity' ? (
+            <h2>{localCurrentLesson.title}</h2>
+            {localCurrentLesson.type === 'activity' ? (
               <ActivityLesson 
                 lesson={currentLesson}
                 user={user}
@@ -224,7 +211,7 @@ const CoursePlayer = () => {
               <>
                 <VideoPlayer
                   ref={playerRef}
-                  lesson={currentLesson}
+                  lesson={localCurrentLesson}
                   onPlay={handlePlay}
                   onPause={handlePause}
                   user={user}
@@ -233,10 +220,10 @@ const CoursePlayer = () => {
                   completedLessons={completedLessons}
                 />
                 <div className="lesson-description-box">
-                  <p>{currentLesson.content || "No description available."}</p>
+                  <p>{localCurrentLesson.content || "No description available."}</p>
                 </div>
                 <div className="lesson-actions">
-                  {!completedLessons.has(currentLesson.id) && (
+                  {!completedLessons.has(localCurrentLesson.id) && (
                     <button 
                         onClick={handleCompleteLesson} 
                         className="btn btn-primary"
