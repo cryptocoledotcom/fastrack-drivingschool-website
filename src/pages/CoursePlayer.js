@@ -13,6 +13,7 @@ import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Impor
 import { useCurrentLesson } from '../hooks/useCurrentLesson'; // Import the new hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 import IdleModal from '../components/modals/IdleModal';
+import { usePlayerLesson } from '../hooks/usePlayerLesson';
 import { useLessonCompletion } from '../hooks/useLessonCompletion';
 import VideoPlayer from '../components/VideoPlayer';
 import CourseSidebar from '../components/CourseSidebar';
@@ -32,8 +33,7 @@ const CoursePlayer = () => {
     courseLoading, progressLoading, modules, lessons,
     userOverallProgress, completedLessons, courseId
   });
-  // Local state for the player itself
-  const [localCurrentLesson, setLocalCurrentLesson] = useState(null);
+  const { playerLesson, handleLessonClick } = usePlayerLesson(currentLesson, lessons);
   const {
     isCompletable,
     handleCompleteLesson,
@@ -96,11 +96,6 @@ const CoursePlayer = () => {
       // Optional: auto-play when break ends, if it was playing before.
     }
   }, [isOnBreak]);
-
-  // Effect to sync the current lesson from the hook to local state
-  useEffect(() => {
-    setLocalCurrentLesson(currentLesson);
-  }, [currentLesson]);
 
   useEffect(() => {
     if (user && courseId && currentLesson && !completedLessons.has(currentLesson.id)) {
@@ -167,13 +162,6 @@ const CoursePlayer = () => {
     playerRef.current?.play();
   };
 
-  const handleLessonClick = (lessonId) => {
-    const newLesson = lessons[lessonId];
-    if (newLesson) {
-      setLocalCurrentLesson(newLesson);
-    }
-  };
-
   return (
     <div className="course-player-container">
       <CourseSidebar
@@ -181,7 +169,7 @@ const CoursePlayer = () => {
         modules={modules}
         lessons={lessons}
         completedLessons={completedLessons}
-        currentLesson={localCurrentLesson}
+        currentLesson={playerLesson}
         onLessonClick={handleLessonClick}
       />
 
@@ -191,10 +179,10 @@ const CoursePlayer = () => {
             <h2>Congratulations!</h2>
             <p>You have completed the course: {course?.title}</p>
           </div>
-        ) : localCurrentLesson ? (
+        ) : playerLesson ? (
           <div>
-            <h2>{localCurrentLesson.title}</h2>
-            {localCurrentLesson.type === 'activity' ? (
+            <h2>{playerLesson.title}</h2>
+            {playerLesson.type === 'activity' ? (
               <ActivityLesson 
                 lesson={currentLesson}
                 user={user}
@@ -204,7 +192,7 @@ const CoursePlayer = () => {
               <>
                 <VideoPlayer
                   ref={playerRef}
-                  lesson={localCurrentLesson}
+                  lesson={playerLesson}
                   onPlay={handlePlay}
                   onPause={handlePause}
                   user={user}
@@ -213,10 +201,10 @@ const CoursePlayer = () => {
                   completedLessons={completedLessons}
                 />
                 <div className="lesson-description-box">
-                  <p>{localCurrentLesson.content || "No description available."}</p>
+                  <p>{playerLesson.content || "No description available."}</p>
                 </div>
                 <div className="lesson-actions">
-                  {!completedLessons.has(localCurrentLesson.id) && (
+                  {!completedLessons.has(playerLesson.id) && (
                     <button 
                         onClick={handleCompleteLesson} 
                         className="btn btn-primary"

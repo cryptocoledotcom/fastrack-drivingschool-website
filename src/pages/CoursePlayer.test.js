@@ -7,6 +7,7 @@ import { useNotification } from '../components/Notification/NotificationContext'
 import { useCourseData } from '../hooks/useCourseData';
 import { useCurrentLesson } from '../hooks/useCurrentLesson';
 import { useUserCourseId } from '../hooks/useUserCourseId';
+import { usePlayerLesson } from '../hooks/usePlayerLesson';
 import { addCourseAuditLog } from '../services/userProgressFirestoreService';
 import { useUserCourseProgress } from '../hooks/useUserCourseProgress';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
@@ -24,6 +25,7 @@ jest.mock('../components/Notification/NotificationContext');
 jest.mock('../hooks/useCourseData');
 jest.mock('../hooks/useCurrentLesson');
 jest.mock('../hooks/useUserCourseId');
+jest.mock('../hooks/usePlayerLesson');
 jest.mock('../hooks/useUserCourseProgress');
 jest.mock('../hooks/useIdentityVerification');
 jest.mock('../hooks/useCourseSession');
@@ -63,6 +65,11 @@ describe('CoursePlayer Identity Verification for Tests', () => {
       'lesson-1': { id: 'lesson-1', title: 'Video Lesson', type: 'video' },
       'lesson-2': { id: 'lesson-2', title: 'Test Lesson', type: 'test' },
     };
+
+    usePlayerLesson.mockReturnValue({
+      playerLesson: mockLessons[currentLessonType === 'test' ? 'lesson-2' : 'lesson-1'],
+      handleLessonClick: jest.fn(),
+    });
 
     useCurrentLesson.mockReturnValue({
       currentLesson: mockLessons[currentLessonType === 'test' ? 'lesson-2' : 'lesson-1'],
@@ -133,6 +140,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     useBreakTimer.mockReturnValue({ isOnBreak: false });
     useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
 
+    usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
     useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
     useCourseData.mockReturnValue({
       course: null,
@@ -163,6 +171,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     useBreakTimer.mockReturnValue({ isOnBreak: false });
     useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
 
+    usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
     useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
     useCourseData.mockReturnValue({
       course: null,
@@ -195,6 +204,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     useBreakTimer.mockReturnValue({ isOnBreak: false });
     useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
 
+    usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
     useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
     // Mock successful course data
     useCourseData.mockReturnValue({
@@ -236,6 +246,11 @@ describe('CoursePlayer Identity Verification for Tests', () => {
       'l1': { id: 'l1', title: 'Lesson 1' },
       'l2': { id: 'l2', title: 'Lesson 2' },
     };
+
+    usePlayerLesson.mockReturnValue({
+      playerLesson: null,
+      handleLessonClick: jest.fn(),
+    });
 
     useCurrentLesson.mockReturnValue({
       currentLesson: null,
