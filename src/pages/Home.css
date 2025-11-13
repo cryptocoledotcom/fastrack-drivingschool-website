@@ -47,14 +47,14 @@
 }
 
 .hero-section h1 {
-  color: #fff;
+  color: var(--white);
   text-align: center;
   font-size: 3rem;
   margin-bottom: 20px;
 }
 
 .hero-section p {
-  color: #fff;
+  color: var(--white);
   text-align: center;
   font-size: 1.5rem;
   margin-bottom: 30px;
@@ -94,7 +94,7 @@
 }
 
 .card h3 {
-  color: var(--black);
+  color: var(--dark-gray);
   text-decoration: underline;
 }
 

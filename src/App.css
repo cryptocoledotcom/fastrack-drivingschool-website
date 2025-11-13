@@ -1,6 +1,6 @@
 :root {
   --primary-color: rebeccapurple;
-  --secondary-color: #20a0c8; /* More blue Turqoise */
+  --secondary-color: #2bb8d4; /* More blue Turqoise */
   --secondary-color-hover: #198cb8; /* Darker blue Turqoise */
   --danger-color: #e74c3c;
   --danger-color-hover: #c0392b;
@@ -28,56 +28,9 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background-color: var(--primary-color);
 }
 
 .content {
   flex: 1; /* This makes the content area grow to fill available space */
-}
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: var(--white);
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 768px) {
-  body {
-    font-size: 18px;
-  }
-
-  .content {
-    padding: 1rem;
-  }
 }

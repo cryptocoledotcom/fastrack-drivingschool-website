@@ -10,14 +10,15 @@
 }
 
 .features-container {
-  background: var(--light-gray-1);
+  background: var(--dark-gray);
   padding: 50px 20px;
   margin-top: 10px;
   text-align: center;
+  color: var(--dark-gray);
 }
 
 .features-title {
-  color: var(--dark-gray);
+  color: var(--white);
   margin-bottom: 30px;
 }
 
@@ -48,7 +49,7 @@
 }
 
 .feature-card p {
-  color: var(--black);
+  color: var(--dark-gray);
 }
 
 .course-list-container {
@@ -99,6 +100,6 @@
 .course-card .course-price {
   font-size: 1.2rem;
   font-weight: bold;
-  color: #2E7D32; /* Darker green for accessibility */
+  color: var(--price-color);
   margin: 15px 0;
 }
