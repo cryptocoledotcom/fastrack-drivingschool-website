@@ -183,4 +183,40 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     });
     await waitFor(() => expect(screen.getByText('Failed to load course data.')).toBeInTheDocument());
   });
+
+  it('should display an error message if user progress fails to load', async () => {
+    // Mock hooks to simulate an error state from user progress
+    useParams.mockReturnValue({ courseId: 'test-course' });
+    useAuth.mockReturnValue({ user: { uid: 'test-user' } });
+    useNotification.mockReturnValue({ showNotification: jest.fn() });
+    useIdentityVerification.mockReturnValue({ actions: { triggerVerificationNow: jest.fn() } });
+    useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
+    useBreakTimer.mockReturnValue({ isOnBreak: false });
+    useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
+
+    // Mock successful course data
+    useCourseData.mockReturnValue({
+      course: { id: 'test-course', title: 'Test Course' },
+      modules: [],
+      lessons: {},
+      loading: false,
+      error: null,
+    });
+    // Mock user progress error
+    useUserCourseProgress.mockReturnValue({
+      completedLessons: new Set(),
+      loading: false,
+      error: 'Failed to load user progress.',
+      userOverallProgress: null,
+      actions: { completeLesson: jest.fn() },
+    });
+    getDocs.mockResolvedValue({
+      empty: false,
+      docs: [{ id: 'mock-user-course-id' }],
+    });
+    await act(async () => {
+      render(<CoursePlayer />);
+    });
+    await waitFor(() => expect(screen.getByText('Failed to load user progress.')).toBeInTheDocument());
+  });
 });
