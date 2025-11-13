@@ -108,10 +108,11 @@ describe('useCourseSession', () => {
 
     it('should periodically re-check the time limit', async () => {
       getTimeSpentToday.mockResolvedValue(1000);
-      let hookResult;
+      const { result } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
+
       await act(async () => {
-        const { result } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
-        hookResult = result;
+        // Let the initial effect run
+        await Promise.resolve();
       });
 
       await waitFor(() => expect(getTimeSpentToday).toHaveBeenCalledTimes(1));
@@ -125,7 +126,7 @@ describe('useCourseSession', () => {
         await Promise.resolve(); // Flush promises
       });
 
-      await waitFor(() => expect(hookResult.current.isTimeLimitReached).toBe(true));
+      await waitFor(() => expect(result.current.isTimeLimitReached).toBe(true));
       expect(getTimeSpentToday).toHaveBeenCalledTimes(2);
     });
   });

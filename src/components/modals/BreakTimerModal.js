@@ -29,7 +29,7 @@ const BreakTimerModal = ({ isOpen, onResume, _test_isBreakOver = false }) => {
       // Cleanup interval on component unmount or when modal closes
       return () => clearInterval(interval);
     }
-  }, [isOpen, _test_isBreakOver, isBreakOver]);
+  }, [isOpen, _test_isBreakOver]);
 
   return (
     <Modal
