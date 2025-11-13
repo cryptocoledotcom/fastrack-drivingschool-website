@@ -12,17 +12,17 @@ import { useUserCourseId } from '../hooks/useUserCourseId'; // Import the new ho
 import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Import the new progress hook
 import { useCurrentLesson } from '../hooks/useCurrentLesson'; // Import the new hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
-import IdleModal from '../components/modals/IdleModal';
 import { useCourseCompletionAudit } from '../hooks/useCourseCompletionAudit';
-import { useSaveOnExit as useSaveOnExitHook } from '../hooks/useSaveOnExit';
 import { usePlayerLesson } from '../hooks/usePlayerLesson';
 import { useLessonCompletion } from '../hooks/useLessonCompletion';
 import VideoPlayer from '../components/VideoPlayer';
 import CourseSidebar from '../components/CourseSidebar';
 import ActivityLesson from '../components/lessons/ActivityLesson'; // Import the new component
+import IdleModal from '../components/modals/IdleModal';
 import TimeLimitModal from '../components/modals/TimeLimitModal';
 import BreakTimerModal from '../components/modals/BreakTimerModal'; // Import the renamed break modal
 import { useCourseSession } from '../hooks/useCourseSession'; // Import the new session hook
+import { usePlayerEffects } from '../hooks/usePlayerEffects';
 
 const CoursePlayer = () => {
   const { courseId } = useParams();
@@ -97,42 +97,22 @@ const CoursePlayer = () => {
     course,
     userOverallProgress,
   });
-  // --- Save on Exit Hook ---
-  useSaveOnExitHook({
-    user,
-    currentLesson,
-    completedLessons,
-    saveOnExit,
+
+  // --- Player Effects Hook ---
+  usePlayerEffects({
     playerRef,
+    isOnBreak,
+    isTimeLimitReached,
+    isVerificationModalOpen,
+    isIdleModalOpen: isIdle,
+    isBreakModalOpen,
   });
-  // Effect to pause the video when a break starts
-  useEffect(() => {
-    if (isOnBreak) {
-      playerRef.current?.pause();
-    } else {
-      // Optional: auto-play when break ends, if it was playing before.
-    }
-  }, [isOnBreak]);
 
   useEffect(() => {
     if (user && courseId && currentLesson && !completedLessons.has(currentLesson.id)) {
       setLastViewedLesson(user.uid, courseId, currentLesson.id);
     }
   }, [user, courseId, currentLesson, completedLessons]);
-
-  // Trigger identity verification when a test starts
-  useEffect(() => {
-    // Effect to pause the video if the time limit is reached by the session hook
-    if (isTimeLimitReached) {
-      playerRef.current?.pause();
-    }
-  }, [isTimeLimitReached]);
-
-  useEffect(() => {
-    if (currentLesson?.type === 'test') {
-      verificationActions.triggerVerificationNow();
-    }
-  }, [currentLesson, verificationActions]);
 
   if (courseLoading || progressLoading || userCourseIdLoading) {
     return <div className="loading-container">Loading Course...</div>;

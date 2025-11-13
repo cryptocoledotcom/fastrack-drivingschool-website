@@ -6,12 +6,13 @@ import { hashText, getRandomSecurityQuestion, lockUserAccount, logIdentityVerifi
  * @param {object} options - The options for the hook.
  * @param {object} options.user - The authenticated user object.
  * @param {boolean} options.isCourseActive - Whether the course is currently active.
+ * @param {object} options.currentLesson - The currently active lesson.
  * @param {function} options.onVerificationStart - Callback to run when verification starts (e.g., to pause video).
  * @param {function} options.onVerificationSuccess - Callback to run on success (e.g., to play video).
  * @param {function} options.onVerificationFail - Callback to run on final failure (e.g., to log out).
  * @returns {object} The state and handlers for the identity verification modal.
  */
-export const useIdentityVerification = ({ user, isCourseActive, onVerificationStart, onVerificationSuccess, onVerificationFail }) => {
+export const useIdentityVerification = ({ user, isCourseActive, currentLesson, onVerificationStart, onVerificationSuccess, onVerificationFail }) => {
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [verificationQuestion, setVerificationQuestion] = useState(null); 
   const [verificationError, setVerificationError] = useState('');
@@ -79,6 +80,13 @@ export const useIdentityVerification = ({ user, isCourseActive, onVerificationSt
       }
     };
   }, [user, isCourseActive, triggerVerification]);
+
+  // --- Trigger verification when a test starts ---
+  useEffect(() => {
+    if (currentLesson?.type === 'test') {
+      triggerVerification();
+    }
+  }, [currentLesson, triggerVerification]);
 
 
   // --- Core Verification Submission Logic (Fixed Attempts Logic - Lines 137, 160 fix) ---

@@ -73,11 +73,20 @@ export const useTimeTracker = (user, currentLesson, isTimeLimitReached, complete
     }
   }, [saveCurrentActiveTime]);
 
-  // Reset time tracking state when the lesson changes.
+  // Effect to save progress on exit and reset state when the lesson changes.
   useEffect(() => {
+    window.addEventListener('beforeunload', saveOnExit);
+
+    // Reset the tracking state for the new lesson.
     activeTimeSegmentStartRef.current = 0;
     isTrackingActiveTimeRef.current = false;
-  }, [currentLesson]);
+
+    return () => {
+      window.removeEventListener('beforeunload', saveOnExit);
+      // Also save any pending time when the lesson changes or component unmounts.
+      saveOnExit();
+    };
+  }, [currentLesson, saveOnExit]);
 
   return { handlePlay, handlePause, saveOnExit };
 };
