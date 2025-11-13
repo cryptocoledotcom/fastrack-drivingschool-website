@@ -53,6 +53,7 @@ const CoursePlayer = () => {
     verificationError,
     verificationAttempts,
     handleVerificationSubmit,
+    actions: verificationActions,
   } = useIdentityVerification({
     user,
     isCourseActive,
@@ -137,6 +138,13 @@ const CoursePlayer = () => {
       setLastViewedLesson(user.uid, courseId, currentLesson.id);
     }
   }, [user, courseId, currentLesson, completedLessons]);
+
+  // Trigger identity verification when a test starts
+  useEffect(() => {
+    if (currentLesson?.type === 'test') {
+      verificationActions.triggerVerificationNow();
+    }
+  }, [currentLesson, verificationActions]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
