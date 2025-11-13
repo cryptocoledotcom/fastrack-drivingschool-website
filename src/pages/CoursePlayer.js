@@ -2,10 +2,9 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
-import { saveLessonPlaybackTime, setLastViewedLesson, addCourseAuditLog } from "../services/userProgressFirestoreService";
+import { setLastViewedLesson } from "../services/userProgressFirestoreService";
 import { useTimeTracker } from '../hooks/useTimeTracker';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
-import { useNotification } from '../components/Notification/NotificationContext'; // Import useNotification
 import { useCourseData } from '../hooks/useCourseData'; // Import the new hook
 import { useBreakTimer } from '../hooks/useBreakTimer'; // Import the break timer hook
 import { useUserCourseId } from '../hooks/useUserCourseId'; // Import the new hook
@@ -27,9 +26,8 @@ import { usePlayerEffects } from '../hooks/usePlayerEffects';
 const CoursePlayer = () => {
   const { courseId } = useParams();
   const { user, logout } = useAuth();
-  const { showNotification } = useNotification(); // Get showNotification
   const { course, modules, lessons, loading: courseLoading, error: courseError } = useCourseData(courseId); 
-  const { userCourseId, loading: userCourseIdLoading, error: userCourseIdError } = useUserCourseId(user, courseId);
+  const { loading: userCourseIdLoading, error: userCourseIdError } = useUserCourseId(user, courseId);
   const { userOverallProgress, completedLessons, loading: progressLoading, error: progressError, actions } = useUserCourseProgress(user);
   const { currentLesson, courseCompleted } = useCurrentLesson({
     courseLoading, progressLoading, modules, lessons,
@@ -64,7 +62,6 @@ const CoursePlayer = () => {
     verificationError,
     verificationAttempts,
     handleVerificationSubmit,
-    actions: verificationActions,
   } = useIdentityVerification({
     user,
     isCourseActive,
@@ -88,7 +85,7 @@ const CoursePlayer = () => {
   // --- END: SESSION MANAGEMENT HOOK ---
 
   // --- Time Tracking Hook ---
-  const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons, playerRef);
+  const { handlePlay, handlePause } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons, playerRef);
 
   // --- Course Completion Audit Hook ---
   useCourseCompletionAudit({
