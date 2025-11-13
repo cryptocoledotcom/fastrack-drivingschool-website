@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../../Firebase"; // Import db
-import { onAuthStateChanged, signOut, signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { logSessionEvent } from '../../services/userProgressFirestoreService';
-import { doc, getDoc } from "firebase/firestore"; // Import doc and getDoc
+import { doc, getDoc, setDoc } from "firebase/firestore"; // Import doc, getDoc, and setDoc
 import { getUserRole } from "../../services/authService";
 
 const AuthContext = createContext();
@@ -57,8 +57,38 @@ export const AuthProvider = ({ children }) => {
     await signOut(auth);
   };
 
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if the user is new. If so, create a document for them in Firestore.
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        // User is new, create their profile document
+        await setDoc(userDocRef, {
+          email: user.email,
+          role: "student", // Default role for new sign-ups
+        });
+      }
+    } catch (error) {
+      console.error("Error during Google sign-in:", error);
+      throw error; // Re-throw the error so the UI can catch it
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, role, loading, login, logout }}>
+    <AuthContext.Provider value={{
+      user,
+      role,
+      loading,
+      login,
+      logout,
+      signInWithGoogle
+    }}>
       {children}
     </AuthContext.Provider>
   );

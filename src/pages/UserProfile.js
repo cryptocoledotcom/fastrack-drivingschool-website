@@ -10,6 +10,7 @@ import ProfileDisplay from "../components/profile/ProfileDisplay";
 import ProfileEditForm from "../components/profile/ProfileEditForm";
 import SecurityQuestionsDisplay from "../components/profile/SecurityQuestionsDisplay";
 import SecurityQuestionsEditForm from "../components/profile/SecurityQuestionsEditForm";
+import MultiFactorAuthManager from "../components/profile/MultiFactorAuthManager";
 import { deleteUserProgress } from "../services/userProgressFirestoreService";
 import { predefinedQuestions, createBlankSecurityForm } from "../utils/securityUtils";
 
@@ -233,6 +234,11 @@ const UserProfile = () => {
             onEdit={handleEditSecurityQuestions}
           />
         ) : <p>You have not set up your security questions yet.</p>}
+      </div>
+
+      <div className="user-profile-section">
+        <h2>Multi-Factor Authentication</h2>
+        <MultiFactorAuthManager />
       </div>
 
       <div className="my-courses-container">

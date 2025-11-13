@@ -98,3 +98,44 @@
 .btn-primary:hover {
   background-color: var(--secondary-color-hover);
 }
+
+/* --- Social Auth Styles --- */
+.social-auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+  color: var(--secondary-gray);
+}
+
+.social-auth-divider::before,
+.social-auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--light-gray-3);
+}
+
+.social-auth-divider span {
+  padding: 0 10px;
+}
+
+.social-auth {
+  display: flex;
+  justify-content: center;
+}
+
+.btn-google {
+  background-color: #4285F4;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.btn-google:hover {
+  background-color: #357ae8;
+}

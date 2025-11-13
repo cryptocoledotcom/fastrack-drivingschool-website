@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { auth } from "../../Firebase";
+import { useAuth } from './AuthContext';
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../Firebase";
 import "./AuthForms.css";
+import { auth } from "../../Firebase";
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
@@ -12,6 +13,7 @@ const SignUp = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
+  const { signInWithGoogle } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,6 +46,15 @@ const SignUp = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+      navigate('/user-profile'); // Redirect after successful Google sign-in
+    } catch (err) {
+      setError('Failed to sign up with Google. Please try again.');
+    }
+  };
+
   return (
     <form className="auth-form" onSubmit={handleSubmit}>
       <h2>Sign-Up</h2>
@@ -73,6 +84,12 @@ const SignUp = () => {
       <p className="auth-switch">
         Already have an account? <Link to="/login">Log in</Link>
       </p>
+      <div className="social-auth-divider">
+        <span>OR</span>
+      </div>
+      <div className="social-auth">
+        <button type="button" onClick={handleGoogleSignIn} className="btn-google">Sign up with Google</button>
+      </div>
     </form>
   );
 };
