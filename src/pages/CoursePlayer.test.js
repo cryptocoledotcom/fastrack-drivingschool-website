@@ -1,20 +1,8 @@
 import React from 'react';
 import { render, waitFor, act, screen } from '@testing-library/react';
 import CoursePlayer from './CoursePlayer'; // Assuming CoursePlayer is the default export
+import { setupCoursePlayerMocks } from '../test-utils/CoursePlayerTestUtils';
 import { useParams } from 'react-router-dom';
-import { useAuth } from './Auth/AuthContext';
-import { useNotification } from '../components/Notification/NotificationContext';
-import { useCourseData } from '../hooks/useCourseData';
-import { useCurrentLesson } from '../hooks/useCurrentLesson';
-import { useUserCourseId } from '../hooks/useUserCourseId';
-import { usePlayerLesson } from '../hooks/usePlayerLesson';
-import { useCourseCompletionAudit } from '../hooks/useCourseCompletionAudit';
-import { addCourseAuditLog } from '../services/userProgressFirestoreService';
-import { useUserCourseProgress } from '../hooks/useUserCourseProgress';
-import { useIdentityVerification } from '../hooks/useIdentityVerification';
-import { useCourseSession } from '../hooks/useCourseSession';
-import { useBreakTimer } from '../hooks/useBreakTimer';
-import { useTimeTracker } from '../hooks/useTimeTracker';
 
 // Mock hooks
 jest.mock('react-router-dom', () => ({
@@ -26,16 +14,14 @@ jest.mock('../components/Notification/NotificationContext');
 jest.mock('../hooks/useCourseData');
 jest.mock('../hooks/useCurrentLesson');
 jest.mock('../hooks/useUserCourseId');
-jest.mock('../hooks/useCourseCompletionAudit');
 jest.mock('../hooks/usePlayerLesson');
+jest.mock('../hooks/useCourseCompletionAudit');
 jest.mock('../hooks/useUserCourseProgress');
 jest.mock('../hooks/useIdentityVerification');
 jest.mock('../hooks/useCourseSession');
 jest.mock('../hooks/useBreakTimer');
 jest.mock('../hooks/useTimeTracker');
-jest.mock('../services/userProgressFirestoreService');
-
-// Mock child components
+jest.mock('../hooks/useLessonCompletion');
 jest.mock('../components/CourseSidebar', () => () => <div>CourseSidebar</div>);
 jest.mock('../components/VideoPlayer', () => {
   const React = require('react');
@@ -50,147 +36,56 @@ jest.mock('../components/IdentityVerificationModal', () => ({
 }));
 
 describe('CoursePlayer Identity Verification for Tests', () => {
-  const mockTriggerVerificationNow = jest.fn();
-  const mockOnVerificationStart = jest.fn();
-
-  const setupMocks = (currentLessonType) => {
-    useUserCourseId.mockReturnValue({ userCourseId: 'mock-user-course-id', loading: false, error: null });
+  beforeEach(() => {
+    setupCoursePlayerMocks();
+    jest.clearAllMocks();
     useParams.mockReturnValue({ courseId: 'test-course' });
-    useAuth.mockReturnValue({ user: { uid: 'test-user' } });
-    useNotification.mockReturnValue({ showNotification: jest.fn() });
+  });
 
+  it('should trigger identity verification when a lesson of type "test" is loaded', async () => {
     const mockLessons = {
       'lesson-1': { id: 'lesson-1', title: 'Video Lesson', type: 'video' },
       'lesson-2': { id: 'lesson-2', title: 'Test Lesson', type: 'test' },
     };
+    const mockTriggerVerification = jest.fn();
 
-    usePlayerLesson.mockReturnValue({
-      playerLesson: mockLessons[currentLessonType === 'test' ? 'lesson-2' : 'lesson-1'],
-      handleLessonClick: jest.fn(),
-    });
-
-    useCurrentLesson.mockReturnValue({
-      currentLesson: mockLessons[currentLessonType === 'test' ? 'lesson-2' : 'lesson-1'],
-      courseCompleted: false,
-    });
-
-    useCourseData.mockReturnValue({
-      course: { id: 'test-course', title: 'Test Course' },
-      modules: [{ id: 'module-1', title: 'Module 1', lessonOrder: ['lesson-1', 'lesson-2'] }],
-      lessons: mockLessons,
-      loading: false,
-      error: null,
-    });
-
-    useUserCourseProgress.mockReturnValue({
-      completedLessons: new Set(),
-      loading: false,
-      error: null,
-      userOverallProgress: { lastViewedLesson: { 'test-course': currentLessonType === 'test' ? 'lesson-2' : 'lesson-1' } },
-      actions: { completeLesson: jest.fn() },
-    });
-
-    useIdentityVerification.mockReturnValue({
-      isVerificationModalOpen: false,
-      verificationQuestion: null,
-      verificationError: null,
-      verificationAttempts: 3,
-      handleVerificationSubmit: jest.fn(),
-      onVerificationStart: mockOnVerificationStart,
-      actions: { triggerVerificationNow: mockTriggerVerificationNow },
-    });
-
-    useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
-    useBreakTimer.mockReturnValue({ isOnBreak: false });
-    useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
-    useCourseCompletionAudit.mockReturnValue(); // This hook has no return value
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockOnVerificationStart.mockClear();
-  });
-
-  it('should trigger identity verification when a lesson of type "test" is loaded', async () => {
     await act(async () => {
-      setupMocks('test');
+      setupCoursePlayerMocks({
+        // The playerLesson is what's displayed, so we mock that instead of currentLesson directly
+        usePlayerLesson: { playerLesson: mockLessons['lesson-2'], handleLessonClick: jest.fn() },
+        useIdentityVerification: { actions: { triggerVerificationNow: mockTriggerVerification } },
+        // Also ensure currentLesson is set for other hooks that might depend on it
+        useCurrentLesson: { currentLesson: mockLessons['lesson-2'], courseCompleted: false }
+      });
       render(<CoursePlayer />);
       await new Promise(resolve => setTimeout(resolve, 0)); // Allow effects to run
     });
-    // The effect is now inside the hook, so we check its side-effect (calling onVerificationStart)
-    // Since the hook is mocked, we need to check the mock's call history.
-    await waitFor(() => expect(useIdentityVerification).toHaveBeenCalled());
+
+    // The test for the trigger logic now lives in useIdentityVerification.test.js.
+    // Here, we just confirm the component rendered correctly with the test lesson.
+    expect(screen.getByText('Test Lesson')).toBeInTheDocument();
   });
 
   it('should NOT trigger identity verification for lessons of other types', async () => {
+    const mockTriggerVerification = jest.fn();
     await act(async () => {
-      setupMocks('video');
+      setupCoursePlayerMocks({
+        useIdentityVerification: { actions: { triggerVerificationNow: mockTriggerVerification } },
+      });
       render(<CoursePlayer />);
       await new Promise(resolve => setTimeout(resolve, 0)); // Allow effects to run
     });
-    expect(mockTriggerVerificationNow).not.toHaveBeenCalled();
+    expect(mockTriggerVerification).not.toHaveBeenCalled();
   });
 
-  it('should display a loading message when course data or user progress is loading', async () => {
-    // Mock hooks to simulate loading state
-    useParams.mockReturnValue({ courseId: 'test-course' });
-    useAuth.mockReturnValue({ user: { uid: 'test-user' } });
-    useNotification.mockReturnValue({ showNotification: jest.fn() });
-    useIdentityVerification.mockReturnValue({ actions: { triggerVerificationNow: jest.fn() } });
-    useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
-    useBreakTimer.mockReturnValue({ isOnBreak: false });
-    useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
-    useCourseCompletionAudit.mockReturnValue();
-
-    usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
-    useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
-    useCourseData.mockReturnValue({
-      course: null,
-      modules: [],
-      lessons: {},
-      loading: true, // Simulate course data loading
-      error: null,
-    });
-    useUserCourseProgress.mockReturnValue({
-      completedLessons: new Set(),
-      loading: true, // Simulate user progress loading
-      error: null,
-      userOverallProgress: null,
-      actions: { completeLesson: jest.fn() },
-    });
-    useUserCourseId.mockReturnValue({ userCourseId: null, loading: true, error: null });
+  it('should display a loading message when course data is loading', async () => {
+    setupCoursePlayerMocks({ useCourseData: { loading: true } });
     render(<CoursePlayer />);
     expect(screen.getByText('Loading Course...')).toBeInTheDocument();
   });
 
   it('should display an error message if course data fails to load', async () => {
-    // Mock hooks to simulate an error state
-    useParams.mockReturnValue({ courseId: 'test-course' });
-    useAuth.mockReturnValue({ user: { uid: 'test-user' } });
-    useNotification.mockReturnValue({ showNotification: jest.fn() });
-    useIdentityVerification.mockReturnValue({ actions: { triggerVerificationNow: jest.fn() } });
-    useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
-    useBreakTimer.mockReturnValue({ isOnBreak: false });
-    useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
-    useCourseCompletionAudit.mockReturnValue();
-
-    usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
-    useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
-    useCourseData.mockReturnValue({
-      course: null,
-      modules: [],
-      lessons: {},
-      loading: false,
-      error: 'Failed to load course data.', // Simulate course data error
-    });
-    useUserCourseProgress.mockReturnValue({
-      completedLessons: new Set(),
-      loading: false,
-      error: null,
-      userOverallProgress: null,
-      actions: { completeLesson: jest.fn() },
-    });
-    useUserCourseId.mockReturnValue({ userCourseId: 'mock-user-course-id', loading: false, error: null });
+    setupCoursePlayerMocks({ useCourseData: { loading: false, error: 'Failed to load course data.' } });
     await act(async () => {
       render(<CoursePlayer />);
     });
@@ -198,35 +93,15 @@ describe('CoursePlayer Identity Verification for Tests', () => {
   });
 
   it('should display an error message if user progress fails to load', async () => {
-    // Mock hooks to simulate an error state from user progress
-    useParams.mockReturnValue({ courseId: 'test-course' });
-    useAuth.mockReturnValue({ user: { uid: 'test-user' } });
-    useNotification.mockReturnValue({ showNotification: jest.fn() });
-    useIdentityVerification.mockReturnValue({ actions: { triggerVerificationNow: jest.fn() } });
-    useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
-    useBreakTimer.mockReturnValue({ isOnBreak: false });
-    useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
-    useCourseCompletionAudit.mockReturnValue();
-
-    usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
-    useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
-    // Mock successful course data
-    useCourseData.mockReturnValue({
-      course: { id: 'test-course', title: 'Test Course' },
-      modules: [],
-      lessons: {},
-      loading: false,
-      error: null,
-    });
-    // Mock user progress error
-    useUserCourseProgress.mockReturnValue({
-      completedLessons: new Set(),
+    // The mock for useUserCourseProgress needs to include all properties returned by the hook,
+    // even if they are just default/empty values for the error case.
+    setupCoursePlayerMocks({ useUserCourseProgress: {
       loading: false,
       error: 'Failed to load user progress.',
+      completedLessons: new Set(), // Provide an empty Set to prevent .has is not a function error
       userOverallProgress: null,
-      actions: { completeLesson: jest.fn() },
-    });
-    useUserCourseId.mockReturnValue({ userCourseId: 'mock-user-course-id', loading: false, error: null });
+      actions: { completeLesson: jest.fn() }
+    } });
     await act(async () => {
       render(<CoursePlayer />);
     });
@@ -234,52 +109,14 @@ describe('CoursePlayer Identity Verification for Tests', () => {
   });
 
   it('should display the completion message when all lessons are completed', async () => {
-    // Explicitly mock addCourseAuditLog for this test to ensure it returns a promise
-    addCourseAuditLog.mockResolvedValue();
-
-    // Mock hooks to simulate a completed course state
-    useParams.mockReturnValue({ courseId: 'test-course' });
-    useAuth.mockReturnValue({ user: { uid: 'test-user' } });
-    useNotification.mockReturnValue({ showNotification: jest.fn() });
-    useIdentityVerification.mockReturnValue({ actions: { triggerVerificationNow: jest.fn() } });
-    useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
-    useBreakTimer.mockReturnValue({ isOnBreak: false });
-    useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
-    useCourseCompletionAudit.mockReturnValue();
-
-    const mockLessons = {
-      'l1': { id: 'l1', title: 'Lesson 1' },
-      'l2': { id: 'l2', title: 'Lesson 2' },
-    };
-
-    usePlayerLesson.mockReturnValue({
-      playerLesson: null,
-      handleLessonClick: jest.fn(),
+    setupCoursePlayerMocks({
+      useCurrentLesson: { currentLesson: null, courseCompleted: true },
+      useCourseData: {
+        course: { id: 'test-course', title: 'The Best Course' },
+        modules: [{ id: 'm1', lessonOrder: ['l1', 'l2'] }],
+        lessons: { 'l1': {}, 'l2': {} },
+      },
     });
-
-    useCurrentLesson.mockReturnValue({
-      currentLesson: null,
-      courseCompleted: true,
-    });
-
-    useCourseData.mockReturnValue({
-      course: { id: 'test-course', title: 'The Best Course' },
-      modules: [{ id: 'm1', lessonOrder: ['l1', 'l2'] }],
-      lessons: mockLessons,
-      loading: false,
-      error: null,
-    });
-
-    // Simulate all lessons being completed
-    useUserCourseProgress.mockReturnValue({
-      completedLessons: new Set(['l1', 'l2']),
-      loading: false,
-      error: null,
-      userOverallProgress: { lessons: {} }, // Needs to be a valid object
-      actions: { completeLesson: jest.fn() },
-    });
-
-    useUserCourseId.mockReturnValue({ userCourseId: 'mock-user-course-id', loading: false, error: null });
 
     render(<CoursePlayer />);
     await waitFor(() => expect(screen.getByText('Congratulations!')).toBeInTheDocument());
