@@ -135,9 +135,9 @@ describe('UserProfile Component', () => {
     await screen.findByText('Profile Display');
 
     const editButton = screen.getByRole('button', { name: /edit profile/i });
-    
-    // The userEvent.click is already wrapped in act, so we just need to await it.
-    await userEvent.click(editButton);
+    await act(async () => {
+      await userEvent.click(editButton);
+    });
 
     expect(screen.getByText('Profile Edit Form')).toBeInTheDocument();
   });
