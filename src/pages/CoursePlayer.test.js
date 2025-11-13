@@ -5,6 +5,7 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from './Auth/AuthContext';
 import { useNotification } from '../components/Notification/NotificationContext';
 import { useCourseData } from '../hooks/useCourseData';
+import { addCourseAuditLog } from '../services/userProgressFirestoreService';
 import { useUserCourseProgress } from '../hooks/useUserCourseProgress';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
 import { useCourseSession } from '../hooks/useCourseSession';
@@ -218,5 +219,47 @@ describe('CoursePlayer Identity Verification for Tests', () => {
       render(<CoursePlayer />);
     });
     await waitFor(() => expect(screen.getByText('Failed to load user progress.')).toBeInTheDocument());
+  });
+
+  it('should display the completion message when all lessons are completed', async () => {
+    // Explicitly mock addCourseAuditLog for this test to ensure it returns a promise
+    addCourseAuditLog.mockResolvedValue();
+
+    // Mock hooks to simulate a completed course state
+    useParams.mockReturnValue({ courseId: 'test-course' });
+    useAuth.mockReturnValue({ user: { uid: 'test-user' } });
+    useNotification.mockReturnValue({ showNotification: jest.fn() });
+    useIdentityVerification.mockReturnValue({ actions: { triggerVerificationNow: jest.fn() } });
+    useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
+    useBreakTimer.mockReturnValue({ isOnBreak: false });
+    useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
+
+    const mockLessons = {
+      'l1': { id: 'l1', title: 'Lesson 1' },
+      'l2': { id: 'l2', title: 'Lesson 2' },
+    };
+
+    useCourseData.mockReturnValue({
+      course: { id: 'test-course', title: 'The Best Course' },
+      modules: [{ id: 'm1', lessonOrder: ['l1', 'l2'] }],
+      lessons: mockLessons,
+      loading: false,
+      error: null,
+    });
+
+    // Simulate all lessons being completed
+    useUserCourseProgress.mockReturnValue({
+      completedLessons: new Set(['l1', 'l2']),
+      loading: false,
+      error: null,
+      userOverallProgress: { lessons: {} }, // Needs to be a valid object
+      actions: { completeLesson: jest.fn() },
+    });
+
+    getDocs.mockResolvedValue({ empty: false, docs: [{ id: 'mock-user-course-id' }] });
+
+    render(<CoursePlayer />);
+    await waitFor(() => expect(screen.getByText('Congratulations!')).toBeInTheDocument());
+    expect(screen.getByText(/You have completed the course: The Best Course/)).toBeInTheDocument();
   });
 });
