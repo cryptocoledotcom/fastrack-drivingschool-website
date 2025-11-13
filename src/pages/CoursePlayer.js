@@ -13,6 +13,7 @@ import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Impor
 import { useCurrentLesson } from '../hooks/useCurrentLesson'; // Import the new hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 import IdleModal from '../components/modals/IdleModal';
+import { useLessonCompletion } from '../hooks/useLessonCompletion';
 import VideoPlayer from '../components/VideoPlayer';
 import CourseSidebar from '../components/CourseSidebar';
 import ActivityLesson from '../components/lessons/ActivityLesson'; // Import the new component
@@ -33,8 +34,12 @@ const CoursePlayer = () => {
   });
   // Local state for the player itself
   const [localCurrentLesson, setLocalCurrentLesson] = useState(null);
-
-  const [allVideosWatched, setAllVideosWatched] = useState(false);
+  const {
+    isCompletable,
+    handleCompleteLesson,
+    onAllVideosWatched,
+  } = useLessonCompletion({ user, currentLesson, courseId, progressActions: actions });
+  
   const playerRef = useRef(null); // A single ref for the new VideoPlayer component
   const isCourseActive = currentLesson && !completedLessons.has(currentLesson.id);
 
@@ -141,17 +146,6 @@ const CoursePlayer = () => {
     }
   }, [courseCompleted, user, course, userOverallProgress]);
 
-  const handleCompleteLesson = async () => {
-    if (!user || !currentLesson) return;
-    try {
-      // Call the single, clean action from the hook
-      await actions.completeLesson(currentLesson.id, courseId);
-    } catch (err) {
-      console.error("Error saving progress:", err);
-      showNotification("Could not save your progress. Please try again.", "error"); // Use showNotification
-    }
-  };
-
   if (courseLoading || progressLoading || userCourseIdLoading) {
     return <div className="loading-container">Loading Course...</div>;
   }
@@ -177,7 +171,6 @@ const CoursePlayer = () => {
     const newLesson = lessons[lessonId];
     if (newLesson) {
       setLocalCurrentLesson(newLesson);
-      setAllVideosWatched(false);
     }
   };
 
@@ -215,7 +208,7 @@ const CoursePlayer = () => {
                   onPlay={handlePlay}
                   onPause={handlePause}
                   user={user}
-                  onAllVideosWatched={setAllVideosWatched}
+                  onAllVideosWatched={onAllVideosWatched}
                   userOverallProgress={userOverallProgress}
                   completedLessons={completedLessons}
                 />
@@ -227,10 +220,10 @@ const CoursePlayer = () => {
                     <button 
                         onClick={handleCompleteLesson} 
                         className="btn btn-primary"
-                        disabled={!allVideosWatched}
-                        title={!allVideosWatched ? "You must finish all videos to continue." : ""}
+                        disabled={!isCompletable}
+                        title={!isCompletable ? "You must finish all videos to continue." : ""}
                     >
-                      {allVideosWatched ? 'Mark as Complete' : 'Finish the video(s) to continue'}
+                      {isCompletable ? 'Mark as Complete' : 'Finish the video(s) to continue'}
                     </button> 
                   )}
                 </div>
