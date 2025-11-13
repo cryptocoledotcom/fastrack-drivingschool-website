@@ -5,11 +5,11 @@ import { useParams } from 'react-router-dom';
 import { useAuth } from './Auth/AuthContext';
 import { useNotification } from '../components/Notification/NotificationContext';
 import { useCourseData } from '../hooks/useCourseData';
+import { useUserCourseId } from '../hooks/useUserCourseId';
 import { addCourseAuditLog } from '../services/userProgressFirestoreService';
 import { useUserCourseProgress } from '../hooks/useUserCourseProgress';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
 import { useCourseSession } from '../hooks/useCourseSession';
-import { getDocs } from 'firebase/firestore';
 import { useBreakTimer } from '../hooks/useBreakTimer';
 import { useTimeTracker } from '../hooks/useTimeTracker';
 
@@ -21,21 +21,18 @@ jest.mock('react-router-dom', () => ({
 jest.mock('./Auth/AuthContext');
 jest.mock('../components/Notification/NotificationContext');
 jest.mock('../hooks/useCourseData');
+jest.mock('../hooks/useUserCourseId');
 jest.mock('../hooks/useUserCourseProgress');
 jest.mock('../hooks/useIdentityVerification');
 jest.mock('../hooks/useCourseSession');
 jest.mock('../hooks/useBreakTimer');
 jest.mock('../hooks/useTimeTracker');
-jest.mock('firebase/firestore', () => ({
-  ...jest.requireActual('firebase/firestore'),
-  collection: jest.fn(),
-  query: jest.fn(),
-  where: jest.fn(),
-  limit: jest.fn(),
-  // getDocs is mocked in setupMocks/individual tests
-  getDocs: jest.fn(),
+jest.mock('../services/userProgressFirestoreService', () => ({  __esModule: true,
+  ...jest.requireActual('../services/userProgressFirestoreService'),
+  addCourseAuditLog: jest.fn(() => Promise.resolve()),
+  setLastViewedLesson: jest.fn(() => Promise.resolve()),
+  saveLessonPlaybackTime: jest.fn(() => Promise.resolve()),
 }));
-jest.mock('../services/userProgressFirestoreService');
 
 // Mock child components
 jest.mock('../components/CourseSidebar', () => () => <div>CourseSidebar</div>);
@@ -55,10 +52,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
   const mockTriggerVerificationNow = jest.fn();
 
   const setupMocks = (currentLessonType) => {
-    getDocs.mockResolvedValue({
-      empty: false,
-      docs: [{ id: 'mock-user-course-id' }],
-    });
+    useUserCourseId.mockReturnValue({ userCourseId: 'mock-user-course-id', loading: false, error: null });
     useParams.mockReturnValue({ courseId: 'test-course' });
     useAuth.mockReturnValue({ user: { uid: 'test-user' } });
     useNotification.mockReturnValue({ showNotification: jest.fn() });
@@ -146,7 +140,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
       userOverallProgress: null,
       actions: { completeLesson: jest.fn() },
     });
-    getDocs.mockReturnValue(new Promise(() => {})); // Simulate userCourseId not yet available
+    useUserCourseId.mockReturnValue({ userCourseId: null, loading: true, error: null });
     render(<CoursePlayer />);
     expect(screen.getByText('Loading Course...')).toBeInTheDocument();
   });
@@ -175,10 +169,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
       userOverallProgress: null,
       actions: { completeLesson: jest.fn() },
     });
-    getDocs.mockResolvedValue({
-      empty: false,
-      docs: [{ id: 'mock-user-course-id' }],
-    });
+    useUserCourseId.mockReturnValue({ userCourseId: 'mock-user-course-id', loading: false, error: null });
     await act(async () => {
       render(<CoursePlayer />);
     });
@@ -211,10 +202,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
       userOverallProgress: null,
       actions: { completeLesson: jest.fn() },
     });
-    getDocs.mockResolvedValue({
-      empty: false,
-      docs: [{ id: 'mock-user-course-id' }],
-    });
+    useUserCourseId.mockReturnValue({ userCourseId: 'mock-user-course-id', loading: false, error: null });
     await act(async () => {
       render(<CoursePlayer />);
     });
@@ -256,7 +244,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
       actions: { completeLesson: jest.fn() },
     });
 
-    getDocs.mockResolvedValue({ empty: false, docs: [{ id: 'mock-user-course-id' }] });
+    useUserCourseId.mockReturnValue({ userCourseId: 'mock-user-course-id', loading: false, error: null });
 
     render(<CoursePlayer />);
     await waitFor(() => expect(screen.getByText('Congratulations!')).toBeInTheDocument());

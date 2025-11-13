@@ -1,7 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { db } from "../Firebase";
-import { collection, getDocs, query, where, limit } from "firebase/firestore";
 import { useAuth } from "./Auth/AuthContext";
 import "./CoursePlayer.css";
 import { saveLessonPlaybackTime, setLastViewedLesson, addCourseAuditLog } from "../services/userProgressFirestoreService";
@@ -10,6 +8,7 @@ import { useIdentityVerification } from '../hooks/useIdentityVerification';
 import { useNotification } from '../components/Notification/NotificationContext'; // Import useNotification
 import { useCourseData } from '../hooks/useCourseData'; // Import the new hook
 import { useBreakTimer } from '../hooks/useBreakTimer'; // Import the break timer hook
+import { useUserCourseId } from '../hooks/useUserCourseId'; // Import the new hook
 import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Import the new progress hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 import IdleModal from '../components/modals/IdleModal';
@@ -26,9 +25,9 @@ const CoursePlayer = () => {
   const { user, logout } = useAuth();
   const { showNotification } = useNotification(); // Get showNotification
   const { course, modules, lessons, loading: courseLoading, error: courseError } = useCourseData(courseId); 
+  const { userCourseId, loading: userCourseIdLoading, error: userCourseIdError } = useUserCourseId(user, courseId);
   const { userOverallProgress, completedLessons, loading: progressLoading, error: progressError, actions } = useUserCourseProgress(user);
   const [currentLesson, setCurrentLesson] = useState(null);
-  const [userCourseId, setUserCourseId] = useState(null);
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [allVideosWatched, setAllVideosWatched] = useState(false);
   const playerRef = useRef(null); // A single ref for the new VideoPlayer component
@@ -87,21 +86,6 @@ const CoursePlayer = () => {
       // Optional: auto-play when break ends, if it was playing before.
     }
   }, [isOnBreak]);
-
-  useEffect(() => {
-    const findUserCourse = async () => {
-      if (!user || !courseId) return;
-      const userCoursesRef = collection(db, "users", user.uid, "courses");
-      const q = query(userCoursesRef, where("courseId", "==", courseId), limit(1));
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        setUserCourseId(querySnapshot.docs[0].id);
-      } else {
-        // Error will be handled by the main error state
-      }
-    };
-    findUserCourse();
-  }, [user, courseId]);
 
   // Main logic effect to determine the current lesson
   useEffect(() => {
@@ -181,7 +165,7 @@ const CoursePlayer = () => {
     }
   };
 
-  if (courseLoading || progressLoading || !userCourseId) {
+  if (courseLoading || progressLoading || userCourseIdLoading) {
     return <div className="loading-container">Loading Course...</div>;
   }
 
@@ -191,6 +175,10 @@ const CoursePlayer = () => {
 
   if (progressError) {
     return <div className="error-container">{progressError}</div>;
+  }
+
+  if (userCourseIdError) {
+    return <div className="error-container">{userCourseIdError}</div>;
   }
 
   const handleIdleConfirm = () => {
