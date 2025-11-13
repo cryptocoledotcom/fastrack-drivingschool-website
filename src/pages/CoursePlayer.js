@@ -13,6 +13,7 @@ import { useUserCourseProgress } from '../hooks/useUserCourseProgress'; // Impor
 import { useCurrentLesson } from '../hooks/useCurrentLesson'; // Import the new hook
 import { IdentityVerificationModal } from '../components/IdentityVerificationModal';
 import IdleModal from '../components/modals/IdleModal';
+import { useSaveOnExit as useSaveOnExitHook } from '../hooks/useSaveOnExit';
 import { usePlayerLesson } from '../hooks/usePlayerLesson';
 import { useLessonCompletion } from '../hooks/useLessonCompletion';
 import VideoPlayer from '../components/VideoPlayer';
@@ -88,6 +89,14 @@ const CoursePlayer = () => {
   // --- Time Tracking Hook ---
   const { handlePlay, handlePause, saveOnExit } = useTimeTracker(user, currentLesson, isTimeLimitReached, completedLessons, playerRef);
 
+  // --- Save on Exit Hook ---
+  useSaveOnExitHook({
+    user,
+    currentLesson,
+    completedLessons,
+    saveOnExit,
+    playerRef,
+  });
   // Effect to pause the video when a break starts
   useEffect(() => {
     if (isOnBreak) {
@@ -116,18 +125,6 @@ const CoursePlayer = () => {
       verificationActions.triggerVerificationNow();
     }
   }, [currentLesson, verificationActions]);
-
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (user && currentLesson && !completedLessons.has(currentLesson.id)) {
-        saveOnExit();
-        const playbackTime = playerRef.current?.getCurrentTime();
-        if (playbackTime) saveLessonPlaybackTime(user.uid, currentLesson.id, playbackTime);
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [user, currentLesson, completedLessons, saveOnExit]);
 
   useEffect(() => {
     if (courseCompleted && user && course) {

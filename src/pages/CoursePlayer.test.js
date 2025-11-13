@@ -8,6 +8,7 @@ import { useCourseData } from '../hooks/useCourseData';
 import { useCurrentLesson } from '../hooks/useCurrentLesson';
 import { useUserCourseId } from '../hooks/useUserCourseId';
 import { usePlayerLesson } from '../hooks/usePlayerLesson';
+import { useSaveOnExit as useSaveOnExitHook } from '../hooks/useSaveOnExit';
 import { addCourseAuditLog } from '../services/userProgressFirestoreService';
 import { useUserCourseProgress } from '../hooks/useUserCourseProgress';
 import { useIdentityVerification } from '../hooks/useIdentityVerification';
@@ -25,6 +26,7 @@ jest.mock('../components/Notification/NotificationContext');
 jest.mock('../hooks/useCourseData');
 jest.mock('../hooks/useCurrentLesson');
 jest.mock('../hooks/useUserCourseId');
+jest.mock('../hooks/useSaveOnExit');
 jest.mock('../hooks/usePlayerLesson');
 jest.mock('../hooks/useUserCourseProgress');
 jest.mock('../hooks/useIdentityVerification');
@@ -104,6 +106,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
     useBreakTimer.mockReturnValue({ isOnBreak: false });
     useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
+    useSaveOnExitHook.mockReturnValue(); // This hook has no return value
   };
 
   beforeEach(() => {
@@ -139,6 +142,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
     useBreakTimer.mockReturnValue({ isOnBreak: false });
     useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
+    useSaveOnExitHook.mockReturnValue();
 
     usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
     useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
@@ -170,6 +174,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
     useBreakTimer.mockReturnValue({ isOnBreak: false });
     useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
+    useSaveOnExitHook.mockReturnValue();
 
     usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
     useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
@@ -203,6 +208,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
     useBreakTimer.mockReturnValue({ isOnBreak: false });
     useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
+    useSaveOnExitHook.mockReturnValue();
 
     usePlayerLesson.mockReturnValue({ playerLesson: null, handleLessonClick: jest.fn() });
     useCurrentLesson.mockReturnValue({ currentLesson: null, courseCompleted: false });
@@ -241,6 +247,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     useCourseSession.mockReturnValue({ isIdle: false, isTimeLimitReached: false, actions: {} });
     useBreakTimer.mockReturnValue({ isOnBreak: false });
     useTimeTracker.mockReturnValue({ handlePlay: jest.fn(), handlePause: jest.fn(), saveOnExit: jest.fn() });
+    useSaveOnExitHook.mockReturnValue();
 
     const mockLessons = {
       'l1': { id: 'l1', title: 'Lesson 1' },
