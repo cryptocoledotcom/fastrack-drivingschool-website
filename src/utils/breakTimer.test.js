@@ -57,13 +57,15 @@ describe('Mandatory Break Enforcement', () => {
     expect(breakTimer.getInstructionalTime()).toBe(120 * 60);
   });
 
-  test('should resume the course and hide the modal after the 10-minute break', () => {
+  test('should end the break and call hideBreakModal when endBreak() is called', () => {
     // Trigger the break
     jest.advanceTimersByTime(120 * 60 * 1000);
     expect(breakTimer.isOnBreak()).toBe(true);
+    expect(mockHideBreakModal).not.toHaveBeenCalled();
 
-    // Advance time for the full 10-minute break duration
-    jest.advanceTimersByTime(10 * 60 * 1000);
+    // Manually end the break
+    breakTimer.endBreak();
+
     expect(mockHideBreakModal).toHaveBeenCalledTimes(1);
     expect(breakTimer.isOnBreak()).toBe(false);
   });

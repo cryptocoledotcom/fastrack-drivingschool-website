@@ -38,7 +38,10 @@ const CoursePlayer = () => {
   const [isBreakModalOpen, setIsBreakModalOpen] = useState(false);
   const { isOnBreak } = useBreakTimer({
     showBreakModal: () => setIsBreakModalOpen(true),
-    hideBreakModal: () => setIsBreakModalOpen(false),
+    hideBreakModal: () => {
+      setIsBreakModalOpen(false);
+      playerRef.current?.play(); // Automatically resume video playback
+    },
   });
   // --- END: MANDATORY BREAK HOOK ---
 
@@ -268,6 +271,7 @@ const CoursePlayer = () => {
       />
       <BreakTimerModal
         isOpen={isBreakModalOpen}
+        onResume={sessionActions.hideBreakModal}
       />
       <IdentityVerificationModal
         isOpen={isVerificationModalOpen}

@@ -20,12 +20,12 @@
   width: 90%;
   text-align: center;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  color: #333;
+  color: var(--primary-color); /* Use primary color variable for text on a white background */
 }
 
 .modal-content h2 {
   margin-top: 0;
-  color: #0056b3; /* A primary color from your theme */
+  color: var(--black); /* Correctly use the primary color variable */
 }
 
 .modal-content p {
@@ -41,10 +41,21 @@
 .modal-timer {
   font-size: 1.5rem; /* Make the timer text larger */
   font-weight: bold;
-  color: #d9534f; /* A distinct color to draw attention */
+  color: var(--danger-color); /* Use the danger color variable */
   margin: 1.5rem 0;
   padding: 0.5rem;
-  border: 2px solid #eee;
+  border: 2px solid var(--light-gray-2); /* Use a light gray variable */
   border-radius: 5px;
-  background-color: #f9f9f9;
+  background-color: var(--light-gray-1); /* Use a light gray variable */
+}
+
+/* --- Specific Overrides for Break Timer Modal --- */
+.break-timer-modal-content {
+  background-color: var(--dark-gray);
+  color: var(--white);
+  border: 2px solid var(--danger-color);
+}
+
+.break-timer-modal-content h2 {
+  color: var(--danger-color);
 }

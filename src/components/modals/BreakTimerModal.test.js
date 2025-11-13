@@ -26,8 +26,8 @@ describe('BreakTimerModal', () => {
   it('should render with the correct content and initial countdown when isOpen is true', () => {
     render(<BreakTimerModal isOpen={true} />);
 
-    expect(screen.getByText('Mandatory Break')).toBeInTheDocument();
-    expect(screen.getByText(/Please take a mandatory 10-minute break/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Mandatory 10-Minute Break/i })).toBeInTheDocument();
+    expect(screen.getByText(/Please take your mandatory break/i)).toBeInTheDocument();
     // Initial time should be 10 minutes (600 seconds)
     expect(screen.getByText(/Time Remaining:/i)).toHaveTextContent('10m 0s');
   });
@@ -46,5 +46,23 @@ describe('BreakTimerModal', () => {
     // Check that the time has updated correctly
     // 600 - 5 = 595 seconds => 9m 55s
     expect(screen.getByText(/Time Remaining:/i)).toHaveTextContent('9m 55s');
+  });
+
+  it('should show a "Resume Course" button after the countdown finishes', () => {
+    const mockOnResume = jest.fn();
+    render(<BreakTimerModal isOpen={true} onResume={mockOnResume} />);
+
+    // Timer is initially visible
+    expect(screen.getByText(/Time Remaining:/i)).toBeInTheDocument();
+
+    // Advance time by the full 10 minutes
+    act(() => {
+      jest.advanceTimersByTime(10 * 60 * 1000);
+    });
+
+    // Assert that the timer is gone and the button is visible
+    expect(screen.queryByText(/Time Remaining:/i)).not.toBeInTheDocument();
+    const resumeButton = screen.getByRole('button', { name: /resume course/i });
+    expect(resumeButton).toBeInTheDocument();
   });
 });

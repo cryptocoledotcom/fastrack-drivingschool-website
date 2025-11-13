@@ -1,5 +1,4 @@
 const INSTRUCTIONAL_TIME_PER_BREAK = 120 * 60; // 120 minutes in seconds
-const BREAK_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 class BreakTimer {
   constructor({ showBreakModal, hideBreakModal, onTick } = {}) {
@@ -42,10 +41,6 @@ class BreakTimer {
   triggerBreak() {
     this.onBreak = true;
     this.showBreakModal();
-
-    setTimeout(() => {
-      this.endBreak();
-    }, BREAK_DURATION);
   }
 
   endBreak() {

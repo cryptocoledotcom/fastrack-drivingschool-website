@@ -5,16 +5,25 @@ import './Modals.css';
 
 const BREAK_DURATION_SECONDS = 10 * 60;
 
-const BreakTimerModal = ({ isOpen }) => {
+const BreakTimerModal = ({ isOpen, onResume }) => {
   const [countdown, setCountdown] = useState(BREAK_DURATION_SECONDS);
+  const [isBreakOver, setIsBreakOver] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       // Reset countdown when modal opens
       setCountdown(BREAK_DURATION_SECONDS);
+      setIsBreakOver(false);
 
       const interval = setInterval(() => {
-        setCountdown(prev => (prev > 0 ? prev - 1 : 0));
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setIsBreakOver(true);
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
 
       // Cleanup interval on component unmount or when modal closes
@@ -25,16 +34,22 @@ const BreakTimerModal = ({ isOpen }) => {
   return (
     <Modal
       isOpen={isOpen}
-      className="modal"
+      className="modal-content break-timer-modal-content"
       overlayClassName="modal-overlay"
       contentLabel="Mandatory Break"
       ariaHideApp={false}
       shouldCloseOnOverlayClick={false} // Prevent closing by clicking outside
     >
-      <h2>Mandatory Break</h2>
-      <p>You have reached a 2-hour instructional time block. Please take a mandatory 10-minute break.</p>
-      <p className="modal-timer">Time Remaining: <strong>{formatTime(countdown)}</strong></p>
-      <p>The course will resume automatically when the timer ends.</p>
+      <h2>Mandatory 10-Minute Break</h2>
+      <p>You have reached a 2-hour instructional time block. Please take your mandatory break.</p>
+      {isBreakOver ? (
+        <div className="break-over-actions">
+          <p>Your break is over. You may now resume the course.</p>
+          <button onClick={onResume} className="btn btn-primary">Resume Course</button>
+        </div>
+      ) : (
+        <p className="modal-timer">Time Remaining: <strong>{formatTime(countdown)}</strong></p>
+      )}
     </Modal>
   );
 };
