@@ -1,11 +1,17 @@
 const functions = require("firebase-functions");
+const admin = require("firebase-admin");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const nodemailer = require("nodemailer");
+const cors = require("cors")({ origin: true });
+
+// Initialize Firebase Admin SDK
+admin.initializeApp();
 
 // Initialize Secret Manager client
 const secretsClient = new SecretManagerServiceClient();
+const db = admin.firestore();
 
 // Function to access the secret key
 async function getGeminiApiKey() {
@@ -29,6 +35,71 @@ async function getNodemailerPassword() {
   }
   return payload;
 }
+
+/**
+ * A Cloud Function to update the user's MFA status in Firestore.
+ * It expects an authenticated request with a boolean `mfaEnabled` in the body.
+ */
+exports.updateMfaStatus = functions.https.onRequest((req, res) => {
+  // Use CORS to allow requests from your web app
+  cors(req, res, async () => {
+    // Check for POST request
+    if (req.method !== "POST") {
+      return res.status(405).send("Method Not Allowed");
+    }
+
+    // Check for authentication
+    const idToken = req.headers.authorization?.split("Bearer ")[1];
+    if (!idToken) {
+      return res.status(403).send("Unauthorized");
+    }
+
+    try {
+      // Verify the user's ID token
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+      const { mfaEnabled } = req.body;
+
+      if (typeof mfaEnabled !== "boolean") {
+        return res.status(400).send("Bad Request: 'mfaEnabled' must be a boolean.");
+      }
+      // Update the user's document in the 'users' collection
+      const userRef = db.collection("users").doc(uid);
+      await userRef.update({ mfaEnabled: mfaEnabled });
+      return res.status(200).send({ success: true, message: `MFA status updated to ${mfaEnabled}` });
+    } catch (error) {
+      console.error("Error updating MFA status:", error);
+      return res.status(500).send("Internal Server Error");
+    }
+  });
+});
+
+// HTTP Callable Function to log session events
+exports.logSessionEvent = functions.https.onCall(async (data, context) => {
+  // Check for authentication
+  if (!context.auth) {
+    throw new functions.https.HttpsError("unauthenticated", "The function must be called by an authenticated user.");
+  }
+
+  const eventType = data.eventType;
+  const uid = context.auth.uid;
+
+  if (!['login', 'logout'].includes(eventType)) {
+    throw new functions.https.HttpsError("invalid-argument", "Invalid event type specified.");
+  }
+
+  try {
+    await db.collection('session_events').add({
+      userId: uid,
+      eventType: eventType,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return { success: true, message: `Event '${eventType}' logged successfully.` };
+  } catch (error) {
+    console.error("Error logging session event to Firestore:", error);
+    throw new functions.https.HttpsError("internal", "Failed to log session event.");
+  }
+});
 
 // HTTP Callable Function that your React app will call
 exports.generateContent = functions.https.onCall(async (data, context) => {
