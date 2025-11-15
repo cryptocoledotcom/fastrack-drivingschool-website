@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useIdleTimer } from './useIdleTimer';
+import { useIdleTimer } from './useIdleTimer'; // Assuming this is a custom hook
 import { getTimeSpentToday } from '../services/userProgressFirestoreService';
 
 const FOUR_HOURS_IN_SECONDS = 4 * 60 * 60;

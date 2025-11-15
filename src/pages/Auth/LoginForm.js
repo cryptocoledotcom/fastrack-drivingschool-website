@@ -16,11 +16,8 @@ const LoginForm = () => {
     setError("");
     setIsLocked(false);
     try {
-      const result = await login(email, password);
-      if (result?.success) {
-        navigate("/user-profile");
-      }
-      // If MFA is required, do nothing and wait for the modal.
+      await login(email, password);
+      navigate("/user-profile");
     } catch (err) {
       console.error("Login form submission error:", err);
       if (err.message === 'ACCOUNT_LOCKED') {
@@ -33,11 +30,8 @@ const LoginForm = () => {
 
   const handleGoogleSignIn = async () => {
     try {
-      const result = await signInWithGoogle();
-      if (result?.success) {
-        navigate('/user-profile');
-      }
-      // If MFA is required, do nothing and wait for the modal.
+      await signInWithGoogle();
+      navigate('/user-profile'); // Re-add navigation after successful sign-in
     } catch (err) {
       console.error("Google sign-in error:", err);
       setError('Failed to sign in with Google. Please try again.');

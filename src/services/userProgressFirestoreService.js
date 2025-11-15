@@ -7,11 +7,12 @@ const USER_PROGRESS_COLLECTION = 'userProgress';
 /**
  * Calls the backend Firebase Function to log a session event.
  * @param {'login' | 'logout'} eventType The type of event to log.
+ * @param {string} [userId] The user ID, required for logout events.
  */
-export const logSessionEvent = async (eventType) => {
+export const logSessionEvent = async (eventType, userId) => {
   try {
     const logEventFunction = httpsCallable(functions, 'logSessionEvent');
-    await logEventFunction({ eventType });
+    await logEventFunction({ eventType, userId });
   } catch (error) {
     // Log the error to the console for debugging, but don't re-throw it.
     // We don't want a logging failure to prevent the user from logging in or out.

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "./Auth/AuthContext";
 import "./UserProfile.css";
-import { useNotification } from "../components/Notification/NotificationContext";
+import { useNotification } from '../components/Notification/NotificationContext';
 import { useUserProfileData } from '../hooks/useUserProfileData';
 
 import MyCourses from "../components/MyCourses";
@@ -10,14 +10,13 @@ import ProfileDisplay from "../components/profile/ProfileDisplay";
 import ProfileEditForm from "../components/profile/ProfileEditForm";
 import SecurityQuestionsDisplay from "../components/profile/SecurityQuestionsDisplay";
 import SecurityQuestionsEditForm from "../components/profile/SecurityQuestionsEditForm";
-import MultiFactorAuthManager from "../components/profile/MultiFactorAuthManager";
 import { deleteUserProgress } from "../services/userProgressFirestoreService";
 import { predefinedQuestions, createBlankSecurityForm } from "../utils/securityUtils";
 
 const UserProfile = () => {
   const { user, logout } = useAuth(); // Auth context
   const { showNotification } = useNotification(); // Notification context
-  const { profile, securityQuestions, loading, error: profileDataError, actions } = useUserProfileData(user); // Use the refactored hook
+  const { profile, securityQuestions, loading, error: profileDataError, actions } = useUserProfileData(user);
   const [editing, setEditing] = useState(false);
   const [editingSecurity, setEditingSecurity] = useState(false);
   const [form, setForm] = useState({
@@ -234,11 +233,6 @@ const UserProfile = () => {
             onEdit={handleEditSecurityQuestions}
           />
         ) : <p>You have not set up your security questions yet.</p>}
-      </div>
-
-      <div className="user-profile-section">
-        <h2>Multi-Factor Authentication</h2>
-        <MultiFactorAuthManager />
       </div>
 
       <div className="my-courses-container">

@@ -87,13 +87,11 @@ describe('useCourseSession', () => {
 
     it('should set time limit reached if user has exceeded the daily limit', async () => {
       getTimeSpentToday.mockResolvedValue(FOUR_HOURS_IN_SECONDS + 1);
-      const { result } = renderHook(() => useCourseSession(mockUser, true, mockOnIdle));
+      const { result } = renderHook(() =>
+        useCourseSession(mockUser, true, mockOnIdle)
+      );
 
-      await act(async () => {
-        // Let the initial async effect run to completion
-        await Promise.resolve();
-      });
-
+      // The async check runs on mount, so we wait for the state to update.
       await waitFor(() => expect(result.current.isTimeLimitReached).toBe(true));
     });
 

@@ -16,27 +16,18 @@ import CoursePlayer from './pages/CoursePlayer';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './pages/Auth/AuthContext';
 import { NotificationProvider } from './components/Notification/NotificationContext';
-import MfaChallengeModal from './components/modals/MfaChallengeModal';
 import './App.css';
 import './components/Button/Button.css';
  
 import Admin from './pages/Admin';
-
 function App() {
   return (
-    <Router
-      future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true,
-      }}
-    >
+    <Router future={{ v7_startTransition: true }}>
       <AuthProvider>
         <NotificationProvider>
-          <MfaChallengeModal />
           <div className="App">
             {/* Global, hidden containers for reCAPTCHA to prevent unmounting issues */}
             <div id="recaptcha-container" style={{ position: 'absolute', top: '-1000px', left: '-1000px' }}></div>
-            <div id="recaptcha-container-mfa" style={{ position: 'absolute', top: '-1000px', left: '-1000px' }}></div>
             
             <Navbar />
             <main className="content">

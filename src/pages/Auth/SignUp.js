@@ -49,7 +49,7 @@ const SignUp = () => {
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
-      navigate('/user-profile'); // Redirect after successful Google sign-in
+      navigate('/user-profile'); // Re-add navigation after successful sign-in
     } catch (err) {
       setError('Failed to sign up with Google. Please try again.');
     }

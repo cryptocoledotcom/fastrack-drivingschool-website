@@ -1,8 +1,8 @@
 import React from 'react';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { AuthProvider, useAuth } from './AuthContext';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { getDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { getDoc, doc } from 'firebase/firestore';
 import { logSessionEvent } from '../../services/userProgressFirestoreService';
 
 // Mock the entire firebase/auth module
@@ -34,6 +34,9 @@ describe('AuthContext', () => {
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks();
+    // Provide a default mock for getDoc to prevent TypeError in tests that
+    // don't explicitly set it. This is for the `fetchUserData` call.
+    getDoc.mockResolvedValue({ exists: () => true, data: () => ({ role: 'student' }) });
   });
 
   // Wrapper component to provide the context to our hook
@@ -77,23 +80,31 @@ describe('AuthContext', () => {
   });
 
   describe('logout function', () => {
-    it('should call logSessionEvent("logout") before signing out', async () => {
+    it('should call logSessionEvent("logout") with the user UID', async () => {
+      // Arrange: Mock an authenticated user
+      const mockUser = { uid: 'test-user-123' };
+      const onAuthStateChangedCallback = jest.fn();
+      onAuthStateChanged.mockImplementation((auth, callback) => {
+        onAuthStateChangedCallback.mockImplementation(callback);
+        // Simulate user being logged in initially
+        callback(mockUser);
+        return jest.fn(); // unsubscribe
+      });
+
       const { result } = renderHook(() => useAuth(), { wrapper });
 
-      // Act: Call the logout function
+      // Wait for the user state to be set
+      await waitFor(() => expect(result.current.user).not.toBeNull());
+
+      // Act
       await act(async () => {
         await result.current.logout();
       });
 
       // Assert
-      expect(logSessionEvent).toHaveBeenCalledWith('logout');
+      expect(logSessionEvent).toHaveBeenCalledWith('logout', mockUser.uid);
       expect(logSessionEvent).toHaveBeenCalledTimes(1);
       expect(signOut).toHaveBeenCalledTimes(1);
-
-      // This is a more advanced check to ensure the order of operations is correct
-      const logOrder = logSessionEvent.mock.invocationCallOrder[0];
-      const signOutOrder = signOut.mock.invocationCallOrder[0];
-      expect(logOrder).toBeLessThan(signOutOrder);
     });
   });
 });

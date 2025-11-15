@@ -1,18 +1,15 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { auth, db } from "../../Firebase"; // Import db
-import { 
-  onAuthStateChanged, 
-  signOut, 
-  signInWithEmailAndPassword, 
-  GoogleAuthProvider, 
-  signInWithPopup,
-  PhoneAuthProvider,
-  PhoneMultiFactorGenerator,
-  getMultiFactorResolver
+import {
+  onAuthStateChanged,
+  signOut,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
+import { getAdditionalUserInfo } from "firebase/auth";
 import { logSessionEvent } from '../../services/userProgressFirestoreService';
-import { doc, getDoc } from "firebase/firestore"; // Import doc and getDoc
-import { getUserRole } from "../../services/authService";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -20,25 +17,45 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null); // To store Firestore user data
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
-  
-  const [mfaResolver, setMfaResolver] = useState(null);
-  const [mfaHint, setMfaHint] = useState(null);
+
+  const fetchUserData = useCallback(async (uid) => {
+    if (!uid) return;
+    const userDocRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      setUserData(data);
+      setRole(data.role); // Role can also be sourced from here
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
       if (currentUser) {
-        const fetchedRole = await getUserRole(currentUser.uid);
-        setRole(fetchedRole);
+        await fetchUserData(currentUser.uid);
       } else {
+        setUserData(null);
         setRole(null);
       }
+      setUser(currentUser); // Set user after fetching data
       setLoading(false);
     });
     return unsubscribe;
-  }, []);
+  }, [fetchUserData]); // Dependency: fetchUserData
+
+  // Allows components to manually trigger a refresh of the user's auth state
+  // and profile data. Useful after sensitive operations.
+  const forceRefreshUser = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      await currentUser.reload();
+      await fetchUserData(currentUser.uid);
+      setUser({ ...currentUser }); // Create a new object to force re-render
+    }
+  }, [fetchUserData]);
 
   const login = useCallback(async (email, password) => {
     try {
@@ -52,103 +69,57 @@ export const AuthProvider = ({ children }) => {
       }
 
       await logSessionEvent('login');
-      return { success: true, userCredential };
+      return userCredential;
     } catch (error) {
-      if (error.code === 'auth/multi-factor-auth-required') {
-        const resolver = getMultiFactorResolver(auth, error);
-        setMfaResolver(resolver);
-        setMfaHint(resolver.hints[0]);
-        return { success: false, mfaRequired: true };
-      } else {
-        throw error;
-      }
+      throw error;
     }
   }, []);
 
   const logout = useCallback(async () => {
+    const uid = user?.uid; // Capture UID before signing out.
+    await signOut(auth);
+  
     try {
-      await logSessionEvent('logout');
+      // Log the logout event after signing out, passing the UID.
+      if (uid) await logSessionEvent('logout', uid);
     } catch (error) {
       console.error("Failed to log logout event, but proceeding with sign-out:", error);
     }
-    await signOut(auth);
-  }, []);
+  }, [user]);
 
   const signInWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      return { success: true, result };
-    } catch (error) {
-      if (error.code === 'auth/multi-factor-auth-required') {
-        const resolver = getMultiFactorResolver(auth, error);
-        setMfaResolver(resolver);
-        setMfaHint(resolver.hints[0]);
-        return { success: false, mfaRequired: true };
-      } else {
-        throw error;
+      const userCredential = await signInWithPopup(auth, provider);
+      const additionalInfo = getAdditionalUserInfo(userCredential);
+
+      // If it's a new user, create their document in Firestore
+      if (additionalInfo?.isNewUser) {
+        await setDoc(doc(db, "users", userCredential.user.uid), {
+          email: userCredential.user.email,
+          role: "student", // Assign a default role
+        });
       }
-    }
-  }, []);
 
-  const sendMfaVerification = useCallback(async (recaptchaVerifier) => {
-    if (!mfaResolver) {
-      throw new Error("MFA resolver not found.");
-    }
-    try {
-      const phoneInfoOptions = {
-        multiFactorHint: mfaHint,
-        session: mfaResolver.session
-      };
-      const phoneAuthProvider = new PhoneAuthProvider(auth);
-      const verificationId = await phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, recaptchaVerifier);
-      return verificationId;
+      return userCredential;
     } catch (error) {
-      console.error("MFA verification send error in AuthContext:", error);
-      console.error("Error code:", error.code);
       throw error;
     }
-  }, [mfaResolver, mfaHint]);
-
-  const completeMfaSignIn = useCallback(async (verificationCode, verificationId) => {
-    if (!mfaResolver) {
-      throw new Error("MFA resolver not found.");
-    }
-    try {
-      const phoneAuthCredential = PhoneAuthProvider.credential(verificationId, verificationCode);
-      const multiFactorAssertion = PhoneMultiFactorGenerator.assertion(phoneAuthCredential);
-      const userCredential = await mfaResolver.resolveSignIn(multiFactorAssertion);
-      
-      // Manually set the user to update state immediately
-      setUser(userCredential.user);
-      
-      setMfaResolver(null);
-      setMfaHint(null);
-    } catch (error) {
-      console.error("MFA sign-in completion error:", error);
-      throw error;
-    }
-  }, [mfaResolver]);
-
-  const cancelMfaSignIn = useCallback(() => {
-    setMfaResolver(null);
-    setMfaHint(null);
   }, []);
 
   return (
     <AuthContext.Provider value={{
       user,
-      setUser, // <-- Add this
+      userData,
+      fetchUserData,
+      setUser,
       role,
       loading,
       login,
       logout,
       signInWithGoogle,
-      mfaResolver,
-      mfaHint,
-      sendMfaVerification,
-      completeMfaSignIn,
-      cancelMfaSignIn
+      forceRefreshUser, // Expose the new function
+      auth // Export the auth instance
     }}>
       {children}
     </AuthContext.Provider>

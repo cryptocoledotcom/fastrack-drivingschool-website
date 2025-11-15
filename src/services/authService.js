@@ -5,8 +5,8 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   sendPasswordResetEmail
-} from 'firebase/auth';
-
+} from 'firebase/auth'; 
+ 
 export const getUserRole = async (uid) => {
   const userDoc = await getDoc(doc(db, 'users', uid));
   return userDoc.exists() ? userDoc.data().role : null;
