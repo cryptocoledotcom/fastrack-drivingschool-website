@@ -2,8 +2,6 @@ import { doc, getDoc, setDoc, serverTimestamp, updateDoc, deleteDoc, increment, 
 import { db, functions } from '../Firebase'; // Import functions
 import { httpsCallable } from 'firebase/functions'; // Import httpsCallable
 
-const USER_PROGRESS_COLLECTION = 'userProgress';
-
 /**
  * Calls the backend Firebase Function to log a session event.
  * @param {'login' | 'logout'} eventType The type of event to log.
@@ -31,7 +29,7 @@ export const getUserProgress = async (userId) => {
     console.error("getUserProgress: userId is required.");
     return {};
   }
-  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const userProgressRef = doc(db, 'users', userId, 'userProgress', 'progress');
   try {
     const docSnap = await getDoc(userProgressRef);
     if (docSnap.exists()) {
@@ -65,7 +63,7 @@ export const updateActivityProgress = async (userId, activityType, activityId, p
     throw new Error(errorMessage); // Throw an error so the calling code knows the operation failed.
   }
 
-  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const userProgressRef = doc(db, 'users', userId, 'userProgress', 'progress');
 
   try {
     // Use setDoc with { merge: true } to create the document if it doesn't exist,
@@ -88,7 +86,7 @@ export const deleteUserProgress = async (userId) => {
     console.error("deleteUserProgress: userId is required.");
     return;
   }
-  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const userProgressRef = doc(db, 'users', userId, 'userProgress', 'progress');
   try {
     await deleteDoc(userProgressRef);
     console.log(`Progress document for user ${userId} has been deleted.`);
@@ -101,7 +99,7 @@ export const deleteUserProgress = async (userId) => {
 export const initializeLesson = async (userId, lessonId) => {
   if (!userId || !lessonId) return;
 
-  const lessonRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const lessonRef = doc(db, 'users', userId, 'userProgress', 'progress');
   const docSnap = await getDoc(lessonRef);
 
   // Only set timeStart if the lesson progress doesn't exist or lacks a timeStart field.
@@ -139,7 +137,7 @@ const getLearningDayKey = (date) => {
 export const getTimeSpentToday = async (userId) => {
   if (!userId) return 0;
 
-  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const userProgressRef = doc(db, 'users', userId, 'userProgress', 'progress');
   try {
     const docSnap = await getDoc(userProgressRef);
     if (docSnap.exists()) {
@@ -165,7 +163,7 @@ export const addLessonTime = async (userId, lessonId, secondsToAdd) => { // Rena
     return;
   }
   try {
-    const lessonRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+    const lessonRef = doc(db, 'users', userId, 'userProgress', 'progress');
     const todayKey = getLearningDayKey(new Date()); // Get the current learning day key
 
     await updateDoc(lessonRef, {
@@ -189,7 +187,7 @@ export const saveLessonPlaybackTime = async (userId, lessonId, playbackTime) => 
     return;
   }
   try {
-    const lessonRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+    const lessonRef = doc(db, 'users', userId, 'userProgress', 'progress');
     await updateDoc(lessonRef, {
       [`lessons.${lessonId}.playbackTime`]: playbackTime,
       [`lessons.${lessonId}.lastAccessed`]: serverTimestamp(),
@@ -211,7 +209,7 @@ export const setLastViewedLesson = async (userId, courseId, lessonId) => {
     return; // Don't proceed if essential info is missing
   }
 
-  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const userProgressRef = doc(db, 'users', userId, 'userProgress', 'progress');
   try {
     // Use merge:true to update/create the lastViewedLesson field without overwriting other progress
     await setDoc(userProgressRef, { lastViewedLesson: { [courseId]: lessonId } }, { merge: true });
@@ -231,7 +229,7 @@ export const clearLastViewedLesson = async (userId, courseId) => {
     return;
   }
 
-  const userProgressRef = doc(db, USER_PROGRESS_COLLECTION, userId);
+  const userProgressRef = doc(db, 'users', userId, 'userProgress', 'progress');
   try {
     await updateDoc(userProgressRef, { [`lastViewedLesson.${courseId}`]: deleteField() });
   } catch (error) {

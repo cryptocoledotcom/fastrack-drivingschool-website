@@ -19,12 +19,7 @@ service cloud.firestore {
       allow read, write: if request.auth.uid == userId;
     }
 
-    // --- USER PROGRESS RULE (CRITICAL FIX) ---
-    // Rule 3: Allow a user to read/write their own progress document in the 'userProgress' collection.
-    match /userProgress/{userId} {
-      allow read, write: if request.auth.uid == userId;
-    }
-
+    // The 'userProgress' subcollection is now correctly secured by Rule 2 above.
     // --- LOCKOUT RULE ---
     // Rule 4: Allow any authenticated user to CREATE a lockout record.
     // They cannot read or modify existing records.

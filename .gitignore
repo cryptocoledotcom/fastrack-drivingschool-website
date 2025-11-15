@@ -1,13 +1,5 @@
-# Firebase environment variables
-.env
-.env.local
-node_modules
+# Firebase and Google Cloud credentials
+*.json
 
-# Service account keys
-fastrack-drivingschool-website-firebase-adminsdk-prc97-732953591a.json.json
-
-# Ignore all video files
-*.mp4
-
-*storybook.log
-storybook-static
+# Node dependencies
+/node_modules
