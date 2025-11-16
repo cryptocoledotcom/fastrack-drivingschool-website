@@ -4,7 +4,7 @@ import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize the app with your service account credentials
-import serviceAccount from './fastrack-drivingschool-website-firebase-adminsdk-prc97-732953591a.json' with { type: 'json' };
+import serviceAccount from './serviceAccountKey.json' with { type: 'json' };
 
 initializeApp({
   credential: cert(serviceAccount)

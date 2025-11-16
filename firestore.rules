@@ -27,6 +27,13 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
 
+    // --- IMMUTABLE LOGS ---
+    // Allow authenticated users to create logs for themselves, but never read, update, or delete them.
+    match /identity_validation_logs/{logId} {
+      allow create: if request.auth.uid == request.resource.data.userId;
+      allow read, update, delete: if false;
+    }
+
     // --- PUBLIC CONTENT & TIME SLOTS RULES ---
     // Rule 5: Allow any authenticated user to READ (get and list) all public course content
     // and time slots. This is required for the CoursePlayer, UserProgressDashboard, and MyCourses.

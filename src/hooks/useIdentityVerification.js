@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { hashText, getRandomSecurityQuestion, lockUserAccount, logIdentityVerificationAttempt } from '../services/userProgressFirestoreService';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getRandomSecurityQuestion, lockUserAccount } from '../services/userProgressFirestoreService';
 
 /**
  * A custom hook to manage periodic identity verification.
@@ -90,76 +91,48 @@ export const useIdentityVerification = ({ user, isCourseActive, currentLesson, o
 
 
   // --- Core Verification Submission Logic (Fixed Attempts Logic - Lines 137, 160 fix) ---
-  const handleVerificationSubmit = useCallback(async (userAnswer) => {
-    // Check if user is locked out before starting
-    if (verificationAttempts <= 0) {
-      setVerificationError('Your account is locked. Please contact support.');
-      return;
-    }
+  const handleVerificationSubmit = useCallback(
+    async userAnswer => {
+      if (verificationAttempts <= 0) {
+        setVerificationError('Your account is locked. Please contact support.');
+        return;
+      }
 
-    const storedAnswer = verificationQuestion?.answerHash;
+      const functions = getFunctions();
+      const verifyFunction = httpsCallable(functions, 'verifySecurityQuestionAndLog');
 
-    if (!storedAnswer) {
-      setVerificationError('An error occurred. No question hash found. Please contact support.');
-      return;
-    }
-    
-    // Hash the user's input to compare it with the stored hash (Line 118 fix)
-    const userAnswerHash = await hashText(userAnswer.trim());
-    
-    // Compare the generated hash with the stored hash.
-    if (userAnswerHash === storedAnswer) {
-      // SUCCESS PATH
-      setIsVerificationModalOpen(false);
-      setVerificationError('');
-      setVerificationAttempts(3); // Reset attempts on successful verification (Fix for successful flow)
-      callbackRef.current.onVerificationSuccess?.();
+      try {
+        const result = await verifyFunction({
+          question: verificationQuestion.question,
+          answer: userAnswer.trim()
+        });
 
-      // Log detailed success event for audit trail
-      logIdentityVerificationAttempt(user.uid, {
-        question: verificationQuestion.question, 
-        userResponse: userAnswer, // Record the exact response
-        result: 'Pass',
-        action: 'Successful Validation'
-      }).catch(err => console.error("Error writing success audit log:", err));
-
-    } else {
-      // FAILURE PATH: DECREMENT ATTEMPTS (Lines 137, 160 fix)
-      setVerificationAttempts(prevAttempts => {
-        const newAttemptsLeft = prevAttempts - 1;
-
-        // Ensure promises related to lockout/logging are handled if this is the final attempt
-        if (newAttemptsLeft <= 0) {
-          setVerificationError('You have failed identity verification and your account has been locked.');
-          
-          // Execute async lockout/fail logic
-          lockUserAccount(user.uid).catch(err => console.error("Error locking account:", err));
-          logIdentityVerificationAttempt(user.uid, {
-            question: verificationQuestion.question,
-            userResponse: userAnswer,
-            result: 'Fail',
-            action: 'Account Locked'
-          }).catch(err => console.error("Error writing lockout audit log:", err));
-          
-          callbackRef.current.onVerificationFail?.();
-          setIsVerificationModalOpen(false); // Close modal on lockout
-
+        if (result.data.success) {
+          // SUCCESS PATH
+          setIsVerificationModalOpen(false);
+          setVerificationError('');
+          setVerificationAttempts(3); // Reset attempts on success
+          callbackRef.current.onVerificationSuccess?.();
         } else {
-          // Failure, but attempts remain
-          setVerificationError(`Incorrect answer. You have ${newAttemptsLeft} attempt(s) remaining.`);
-          logIdentityVerificationAttempt(user.uid, {
-            question: verificationQuestion.question,
-            userResponse: userAnswer,
-            result: 'Fail',
-            action: `Attempt Failed (${newAttemptsLeft}/3 remaining)`
-          }).catch(err => console.error("Error writing failure audit log:", err));
+          // FAILURE PATH
+          const newAttemptsLeft = verificationAttempts - 1;
+          setVerificationAttempts(newAttemptsLeft);
+
+          if (newAttemptsLeft <= 0) {
+            setVerificationError('You have failed identity verification and your account has been locked.');
+            await lockUserAccount(user.uid);
+            callbackRef.current.onVerificationFail?.();
+          } else {
+            setVerificationError(`Incorrect answer. You have ${newAttemptsLeft} attempt(s) remaining.`);
+          }
         }
-        
-        // This return value updates the state used for assertions
-        return newAttemptsLeft; 
-      });
-    }
-  }, [verificationQuestion, user?.uid, verificationAttempts]);
+      } catch (error) {
+        console.error('Error calling verifySecurityQuestionAndLog function:', error);
+        setVerificationError('An error occurred while verifying your answer. Please try again.');
+      }
+    },
+    [user, verificationQuestion, verificationAttempts]
+  );
 
 
   return {
@@ -169,7 +142,7 @@ export const useIdentityVerification = ({ user, isCourseActive, currentLesson, o
     verificationAttempts,
     handleVerificationSubmit,
     actions: {
-      triggerVerificationNow: triggerVerification,
+      triggerVerificationNow: triggerVerification
     }
   };
 };

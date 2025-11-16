@@ -1,6 +1,7 @@
 import React from 'react';
 import { render, waitFor, act, screen } from '@testing-library/react';
 import CoursePlayer from './CoursePlayer'; // Assuming CoursePlayer is the default export
+import { setLastViewedLesson } from '../services/userProgressFirestoreService';
 import { setupCoursePlayerMocks } from '../test-utils/CoursePlayerTestUtils';
 import { useParams } from 'react-router-dom';
 
@@ -10,6 +11,7 @@ jest.mock('react-router-dom', () => ({
   useParams: jest.fn(),
 }));
 jest.mock('./Auth/AuthContext');
+jest.mock('../services/userProgressFirestoreService');
 jest.mock('../components/Notification/NotificationContext');
 jest.mock('../hooks/useCourseData');
 jest.mock('../hooks/useCurrentLesson');
@@ -40,6 +42,7 @@ describe('CoursePlayer Identity Verification for Tests', () => {
     setupCoursePlayerMocks();
     jest.clearAllMocks();
     useParams.mockReturnValue({ courseId: 'test-course' });
+    setLastViewedLesson.mockResolvedValue(); // Prevent real DB calls from useEffect
   });
 
   it('should trigger identity verification when a lesson of type "test" is loaded', async () => {

@@ -6,7 +6,7 @@ import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 
 // 2. Initialize the app with your service account credentials
 // Make sure to replace 'path/to/your/serviceAccountKey.json' with the actual path
-import serviceAccount from './fastrack-drivingschool-website-firebase-adminsdk-prc97-732953591a.json' with { type: 'json' };
+import serviceAccount from './serviceAccountKey.json' with { type: 'json' };
 initializeApp({
   credential: cert(serviceAccount)
 });

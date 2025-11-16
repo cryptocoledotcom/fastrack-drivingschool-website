@@ -79,14 +79,12 @@ const UserProfile = () => {
     }
   }, [editingSecurity, securityQuestions]);
 
-  // Effect to set editingSecurity based on whether questions exist
+  // Effect to set editingSecurity based on whether questions exist.
+  // If the user profile has loaded and no security questions are set,
+  // force the user into the editing mode to set them up.
   useEffect(() => {
-    if (!loading && user && securityQuestions.length === 0) {
-      setEditingSecurity(true); // If no questions and not loading, show edit form
-    } else if (!loading && user && securityQuestions.length > 0) {
-      setEditingSecurity(false); // If questions exist, don't show edit form by default
-    }
-  }, [loading, user, securityQuestions]);
+    setEditingSecurity(!loading && user && securityQuestions.length === 0);
+  }, [loading, user, securityQuestions.length]);
 
   if (!user) {
     return <div className="profile-container"><p>Please log in to view your profile.</p></div>;

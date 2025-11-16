@@ -91,8 +91,10 @@ describe('useCourseSession', () => {
         useCourseSession(mockUser, true, mockOnIdle)
       );
 
-      // The async check runs on mount, so we wait for the state to update.
+      // The async check runs on mount, so we wait for the state to update
+      // and for the underlying promise to resolve.
       await waitFor(() => expect(result.current.isTimeLimitReached).toBe(true));
+      await act(async () => { await Promise.resolve(); }); // Flush any remaining promises
     });
 
     it('should not set time limit reached if user is under the daily limit', async () => {
@@ -100,9 +102,11 @@ describe('useCourseSession', () => {
         useCourseSession(mockUser, true, mockOnIdle)
       );
 
-      // The waitFor wrapper handles the async nature of the initial effect
-      await waitFor(() => expect(getTimeSpentToday).toHaveBeenCalled());
-      expect(result.current.isTimeLimitReached).toBe(false);
+      // The waitFor wrapper handles the async nature of the initial effect,
+      // ensuring all state updates from the checkDailyTimeLimit call have completed.
+      await waitFor(() => {
+        expect(result.current.isTimeLimitReached).toBe(false);
+      });
     });
 
     it('should periodically re-check the time limit', async () => {

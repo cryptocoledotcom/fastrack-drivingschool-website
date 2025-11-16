@@ -1,5 +1,13 @@
 # Firebase and Google Cloud credentials
-*.json
+serviceAccountKey.json
+
+# Build output
+/build
 
 # Node dependencies
-/node_modules
+node_modules/
+functions/node_modules/
+
+# Media Assets - Ignore large video files
+# The videos are in the public folder, not src
+public/assets/

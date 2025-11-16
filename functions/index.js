@@ -3,6 +3,7 @@ const admin = require("firebase-admin");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 
 // Initialize Firebase Admin SDK
@@ -142,3 +143,63 @@ exports.sendLockoutNotification = onDocumentCreated("lockouts/{lockoutId}", asyn
         functions.logger.error("Error sending lockout email:", error);
       }
     });
+
+/**
+ * Verifies a user's answer to a security question and creates an immutable log
+ * of the attempt.
+ */
+exports.verifySecurityQuestionAndLog = functions.https.onCall(async (data, context) => {
+  // 1. Authentication & Input Validation
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      "unauthenticated",
+      "The function must be called while authenticated."
+    );
+  }
+
+  const { question, answer } = data;
+  const userId = context.auth.uid;
+
+  if (!question || typeof answer !== "string") {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "The function must be called with a 'question' and 'answer'."
+    );
+  }
+
+  // 2. Fetch the user's stored security questions
+  const securityProfileRef = db.doc(`users/${userId}/securityProfile/questions`);
+  const securityProfileSnap = await securityProfileRef.get();
+
+  if (!securityProfileSnap.exists) {
+    throw new functions.https.HttpsError("not-found", "Security questions have not been set up for this user.");
+  }
+
+  const securityData = securityProfileSnap.data();
+  const questionData = securityData.questions.find(q => q.question === question);
+
+  let isCorrect = false;
+  if (questionData && questionData.answerHash) {
+    // 3. Securely compare the provided answer with the stored hash
+    isCorrect = await bcrypt.compare(answer, questionData.answerHash);
+  }
+
+  // 4. Create an Immutable Log Entry
+  const logRef = db.collection("identity_validation_logs").doc(); // Auto-generate a unique ID
+
+  await logRef.set({
+    userId: userId,
+    question: question,
+    response: answer, // Storing the student's exact response as requested
+    isCorrect: isCorrect,
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    context: {
+      // Additional context for auditing purposes
+      ip: context.rawRequest.ip,
+      userAgent: context.rawRequest.headers["user-agent"] || "",
+    }
+  });
+
+  // 5. Return the result
+  return { success: isCorrect };
+});
