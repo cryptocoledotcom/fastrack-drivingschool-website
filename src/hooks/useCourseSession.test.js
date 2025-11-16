@@ -102,8 +102,8 @@ describe('useCourseSession', () => {
         useCourseSession(mockUser, true, mockOnIdle)
       );
 
-      // The waitFor wrapper handles the async nature of the initial effect,
-      // ensuring all state updates from the checkDailyTimeLimit call have completed.
+      // The waitFor wrapper handles the async nature of the initial effect.
+      // We wait for the assertion itself to pass, which ensures all state updates have completed.
       await waitFor(() => {
         expect(result.current.isTimeLimitReached).toBe(false);
       });

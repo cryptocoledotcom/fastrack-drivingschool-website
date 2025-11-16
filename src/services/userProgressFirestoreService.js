@@ -381,3 +381,51 @@ export const lockUserAccount = async (userId) => {
   if (!userId) return;
   await setDoc(doc(db, 'users', userId), { isLocked: true }, { merge: true });
 };
+
+
+  /**
+   * Adds a user's answer to their verification answers in userProgress.
+   * This logs the question and answer to the userAnswers array for tracking purposes.
+   * @param {string} userId The ID of the user.
+   * @param {string} question The security question that was asked.
+   * @param {string} userAnswer The answer provided by the user.
+   * @returns {Promise<void>}
+   */
+  export const addUserVerificationAnswer = async (userId, question, userAnswer) => {
+    if (!userId || !question || !userAnswer) {
+      console.error("addUserVerificationAnswer: userId, question, and userAnswer are required.");
+      return;
+    }
+
+    const userProgressRef = doc(db, 'users', userId, 'userProgress', 'progress');
+    
+    try {
+      // Get current progress to check if userAnswers array exists
+      const docSnap = await getDoc(userProgressRef);
+      let currentAnswers = [];
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        currentAnswers = data.userAnswers || [];
+      }
+      
+      // Add the new answer to the array
+      const newAnswer = {
+        question,
+        answer: userAnswer,
+        timestamp: serverTimestamp()
+      };
+      
+      currentAnswers.push(newAnswer);
+      
+      // Update the document with the new answers array
+      await updateDoc(userProgressRef, {
+        userAnswers: currentAnswers
+      });
+      
+      console.log(`User ${userId} verification answer logged successfully.`);
+    } catch (error) {
+      console.error("Error adding user verification answer:", error);
+      throw error;
+    }
+  };

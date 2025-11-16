@@ -1,19 +1,16 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useIdentityVerification } from './useIdentityVerification';
-import { getRandomSecurityQuestion, lockUserAccount } from '../services/userProgressFirestoreService';
-import { httpsCallable } from 'firebase/functions';
+import { getRandomSecurityQuestion, hashText, lockUserAccount, logIdentityVerificationAttempt, addUserVerificationAnswer, setLastViewedLesson } from '../services/userProgressFirestoreService';
 
 // Mock the service dependencies
-jest.mock('../services/userProgressFirestoreService');
-
-// Mock Firebase functions
-jest.mock('firebase/functions', () => ({
-  getFunctions: jest.fn(),
-  httpsCallable: jest.fn(),
+jest.mock('../services/userProgressFirestoreService', () => ({
+  getRandomSecurityQuestion: jest.fn(),
+  hashText: jest.fn(),
+  lockUserAccount: jest.fn(),
+  logIdentityVerificationAttempt: jest.fn(),
+  addUserVerificationAnswer: jest.fn(),
+  setLastViewedLesson: jest.fn(),
 }));
-
-// A mock callable function that we can control in tests
-const mockVerifyFunction = jest.fn();
 
 describe('useIdentityVerification', () => {
   const mockUser = { uid: 'test-user-456' };
@@ -44,9 +41,10 @@ describe('useIdentityVerification', () => {
     jest.spyOn(global.Math, 'random').mockReturnValue(0.5);
     jest.spyOn(global, 'setInterval');
     jest.spyOn(global, 'clearInterval');
+    hashText.mockImplementation(async (text) => `hashed-${text}`);
     lockUserAccount.mockResolvedValue(undefined);
-    // Point the httpsCallable mock to our controllable jest function
-    httpsCallable.mockReturnValue(mockVerifyFunction);
+    logIdentityVerificationAttempt.mockResolvedValue(undefined);
+    addUserVerificationAnswer.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -144,21 +142,25 @@ describe('useIdentityVerification', () => {
 
       // Trigger and open modal
       await act(async () => {
-        result.current.actions.triggerVerificationNow();
-        await Promise.resolve();
+        jest.advanceTimersByTime(30 * 60 * 1000);
+        await Promise.resolve(); // Flush promises to let state updates from the timer complete
       });
-
-      // Mock a successful response from the cloud function
-      mockVerifyFunction.mockResolvedValue({ data: { success: true } });
 
       await act(async () => {
         await result.current.handleVerificationSubmit('blue');
       });
 
-      expect(mockVerifyFunction).toHaveBeenCalledWith({ question: mockQuestion.question, answer: 'blue' });
+      expect(hashText).toHaveBeenCalledWith('blue');
       expect(result.current.isVerificationModalOpen).toBe(false);
       expect(result.current.verificationError).toBe('');
       expect(mockOnVerificationSuccess).toHaveBeenCalledTimes(1);
+      expect(logIdentityVerificationAttempt).toHaveBeenCalledWith(mockUser.uid, {
+        question: mockQuestion.question,
+        userResponse: 'blue',
+        result: 'Pass',
+        action: 'Successful Validation',
+      });
+      expect(addUserVerificationAnswer).toHaveBeenCalledWith(mockUser.uid, mockQuestion.question, 'blue');
     });
 
     it('should handle incorrect answers and decrement attempts', async () => {
@@ -166,15 +168,12 @@ describe('useIdentityVerification', () => {
 
       // Trigger and open modal
       await act(async () => {
-        result.current.actions.triggerVerificationNow();
+        jest.advanceTimersByTime(30 * 60 * 1000);
         await Promise.resolve(); // Flush promises
       });
 
       // Wait for the modal to open, which confirms the state has updated.
       await waitFor(() => expect(result.current.isVerificationModalOpen).toBe(true));
-
-      // Mock a failed response
-      mockVerifyFunction.mockResolvedValue({ data: { success: false } });
 
       await act(async () => {
         await result.current.handleVerificationSubmit('red');
@@ -184,6 +183,13 @@ describe('useIdentityVerification', () => {
       expect(result.current.verificationError).toBe('Incorrect answer. You have 2 attempt(s) remaining.');
       expect(result.current.isVerificationModalOpen).toBe(true); // Modal stays open
       expect(lockUserAccount).not.toHaveBeenCalled();
+      expect(logIdentityVerificationAttempt).toHaveBeenCalledWith(mockUser.uid, {
+        question: mockQuestion.question,
+        userResponse: 'red',
+        result: 'Fail',
+        action: 'Attempt Failed (2/3 remaining)',
+      });
+      expect(addUserVerificationAnswer).toHaveBeenCalledWith(mockUser.uid, mockQuestion.question, 'red');
     });
 
     it('should lock account after 3 failed attempts', async () => {
@@ -195,12 +201,9 @@ describe('useIdentityVerification', () => {
 
       // Trigger and open modal
       await act(async () => {
-        result.current.actions.triggerVerificationNow();
+        jest.advanceTimersByTime(30 * 60 * 1000);
         await Promise.resolve(); // Flush promises
       });
-
-      // Mock a failed response for all attempts
-      mockVerifyFunction.mockResolvedValue({ data: { success: false } });
 
       // Make 3 failed attempts
       await act(async () => { await result.current.handleVerificationSubmit('wrong'); });
@@ -209,8 +212,13 @@ describe('useIdentityVerification', () => {
 
       expect(result.current.verificationAttempts).toBe(0);
       expect(result.current.verificationError).toContain('your account has been locked');
-      // The test must wait for the async lockUserAccount operation to complete.
-      await waitFor(() => expect(lockUserAccount).toHaveBeenCalledWith(mockUser.uid));
+      expect(lockUserAccount).toHaveBeenCalledWith(mockUser.uid);
+      expect(logIdentityVerificationAttempt).toHaveBeenCalledWith(mockUser.uid, {
+        question: mockQuestion.question,
+        userResponse: 'wrong',
+        result: 'Fail',
+        action: 'Account Locked',
+      });
       expect(mockOnVerificationFail).toHaveBeenCalledTimes(1);
     });
 

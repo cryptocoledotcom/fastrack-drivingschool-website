@@ -18,11 +18,7 @@ jest.mock('./pages/Auth/AuthContext', () => ({
 
 test('renders welcome message', async () => {
   // Render the App component directly, as it already contains its own Router.
-  // To suppress the future flag warning in tests, we can wrap it in a MemoryRouter,
-  // which is a common practice for testing router-dependent components.
-  render(
-    <MemoryRouter><App /></MemoryRouter>
-  );
+  render(<App />);
   const welcomeElement = await screen.findByText(/The Driving Course You'll Actually Want to Take/i);
   expect(welcomeElement).toBeInTheDocument();
 });
